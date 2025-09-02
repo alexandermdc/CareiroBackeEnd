@@ -48,7 +48,9 @@ export const getPedidoById = async (req: Request, res: Response): Promise<void> 
 
 // POST: Criar novo pedido com produtos
 export const createPedido = async (req: Request, res: Response): Promise<void> => {
-  const { data_pedido, fk_feira, fk_cliente, produtos } = req.body;
+  const { data_pedido, fk_feira, produtos } = req.body;
+  // Use fk_cliente vindo do token se disponível (fonte confiável)
+  const fk_cliente = (req as any).user?.email || (req as any).user?.cpf || req.body.fk_cliente;
 
   try {
     const novoPedido: pedido = await prisma.pedido.create({
