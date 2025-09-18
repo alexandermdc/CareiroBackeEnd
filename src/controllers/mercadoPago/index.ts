@@ -2,8 +2,18 @@ import { Request, Response } from "express";
 import mercadopago from "../../services/mercadoPago"; // importando sua instância configurada
 import { Preference } from "mercadopago";
 
-export const criarPagamento = async (req: Request, res: Response): Promise<void> => {
-    const { testeId, userEmail } = req.body;
+interface AuthenticatedRequest extends Request {
+    user?: { email: string };
+}
+
+export const criarPagamento = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    const { testeId } = req.body;
+    const userEmail = req.user?.email;
+
+    if (!userEmail) {
+        res.status(401).json({ error: "Usuário não autenticado." });
+        return;
+    }
 
     try {
         const preferenceClient = new Preference(mercadopago);
@@ -11,7 +21,8 @@ export const criarPagamento = async (req: Request, res: Response): Promise<void>
         const preference = {
             external_reference: testeId,
             metadata: { testeId },
-            ...(userEmail && { payer: { email: userEmail } }),
+            // 4. Usamos o e-mail autenticado diretamente
+            payer: { email: userEmail },
             items: [
                 {
                     id: "id-do-seu-produto",

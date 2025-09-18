@@ -1,14 +1,15 @@
+// src/config/swagger.ts
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 import { Express } from 'express';
 
 const options = {
   definition: {
-    openapi: '3.0.0', // versão do OpenAPI
+    openapi: '3.0.0',
     info: {
-      title: 'Minha API',
+      title: 'API de Pedidos com Prisma',
       version: '1.0.0',
-      description: 'Documentação da minha API usando Swagger',
+      description: 'Documentação da API para gerenciamento de pedidos, clientes, feiras, produtos e vendedores.',
     },
     servers: [
       {

@@ -1,5 +1,7 @@
+
 import criarPagamento from "../../controllers/mercadoPago";
 import express from "express";
+import isAuth from '../../middlewares/isAuth';
 
 const router = express.Router();
 
@@ -54,6 +56,6 @@ const router = express.Router();
  *                   example: "Erro ao criar preferência"
  */
 
-router.post("/", criarPagamento);
+router.post("/", isAuth, criarPagamento);
 
 export default router;

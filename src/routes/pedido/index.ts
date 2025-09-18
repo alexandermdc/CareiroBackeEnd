@@ -1,9 +1,12 @@
 import express from 'express';
-import {   getPedidos,
-    getPedidoById,
-    createPedido,
-    updatePedido,
-    deletePedido} from '../../controllers/pedido';
+import {
+  getPedidos,
+  getPedidoById,
+  createPedido,
+  updatePedido,
+  deletePedido
+} from '../../controllers/pedido';
+import isAuth from '../../middlewares/isAuth';
 
 const router = express.Router();
 
@@ -118,7 +121,7 @@ router.get('/:id', getPedidoById);
  *       400:
  *         description: Dados inválidos
  */
-router.post('/cadastro', createPedido);
+router.post('/cadastro', isAuth, createPedido);
 
 /**
  * @swagger
@@ -158,7 +161,7 @@ router.post('/cadastro', createPedido);
  *       404:
  *         description: Pedido não encontrado
  */
-router.put('/:id', updatePedido);
+router.put('/:id', isAuth, updatePedido);
 
 /**
  * @swagger
@@ -179,6 +182,6 @@ router.put('/:id', updatePedido);
  *       404:
  *         description: Pedido não encontrado
  */
-router.delete('/:id', deletePedido);
+router.delete('/:id', isAuth, deletePedido);
 
 export default router;
