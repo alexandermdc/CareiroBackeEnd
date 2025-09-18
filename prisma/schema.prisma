@@ -31,6 +31,7 @@ model cliente {
   telefone String   @db.VarChar(11)
   senha    String   @db.VarChar(100)
   pedido   pedido[]
+  favoritos favorita_um[]
 }
 
 model feira {
@@ -51,17 +52,27 @@ model pedido {
   produto     produto[]
 }
 
+model categoria {
+  id_categoria String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nome         String
+  produto      produto[]
+}
+
 model produto {
-  id_produto  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  nome        String
-  categoria   String
-  qntd        Int
-  data_coleta DateTime @db.Date
-  preco       Float
-  id_pedido   Int
-  fk_vendedor String   @db.Uuid
-  vendedor    vendedor @relation(fields: [fk_vendedor], references: [id_vendedor], onDelete: NoAction, onUpdate: NoAction, map: "fk_vendedor")
-  pedido      pedido   @relation(fields: [id_pedido], references: [pedido_id], onDelete: NoAction, onUpdate: NoAction)
+  id_produto     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nome           String
+  descricao      String
+  image          String
+  is_promocao    Boolean
+  preco          Float
+  preco_promocao Float?
+  id_pedido      Int
+  fk_vendedor    String    @db.Uuid
+  id_categoria   String    @db.Uuid
+  vendedor       vendedor  @relation(fields: [fk_vendedor], references: [id_vendedor], onDelete: NoAction, onUpdate: NoAction, map: "fk_vendedor")
+  pedido         pedido    @relation(fields: [id_pedido], references: [pedido_id], onDelete: NoAction, onUpdate: NoAction)
+  categoria      categoria @relation(fields: [id_categoria], references: [id_categoria])
+  favoritado_por   favorita_um[]
 }
 
 model vendedor {
@@ -77,6 +88,16 @@ model vendedor {
   atende_um        atende_um[]
   produto          produto[]
   associacao       associacao?    @relation(fields: [fk_associacao], references: [id_associacao], onDelete: NoAction, onUpdate: NoAction, map: "fk_associacao")
+}
+
+model favorita_um {
+  id_favorito       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cliente           cliente  @relation(fields: [cliente_cpf], references: [cpf])
+  cliente_cpf       String   @db.VarChar(11)
+  produto           produto  @relation(fields: [produto_id], references: [id_produto])
+  produto_id        String   @db.Uuid
+
+  @@unique([cliente_cpf, produto_id])
 }
 
 enum tipo_documento {
