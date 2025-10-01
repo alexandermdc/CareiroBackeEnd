@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../../config/dbConfig";
 import bcrypt from "bcrypt";
-import { gerarToken } from "./jwt";
+import { gerarToken, gerarRefreshToken } from "./jwt";
+import { addRefreshToken } from "./refreshToken";
 
 export const login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -26,10 +27,17 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
       return;
     }
 
-    const token = gerarToken({ cpf: cliente.cpf, email: cliente.email });
+    const tokenPayload = { cpf: cliente.cpf, email: cliente.email };
+    const accessToken = gerarToken(tokenPayload);
+    const refreshToken = gerarRefreshToken(tokenPayload);
+
+    // Adicionar refresh token à lista de tokens válidos
+    addRefreshToken(refreshToken);
 
     res.status(200).json({
-      token,
+      accessToken,
+      refreshToken,
+      expiresIn: '1h',
       cliente: {
         cpf: cliente.cpf,
         nome: cliente.nome,

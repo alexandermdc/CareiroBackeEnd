@@ -4,11 +4,14 @@ import mercadopago from "../../services/mercadoPago"; // seu client config
 import { verifyMercadoPagoSignature } from "../mercadoPago/mercadopago";
 import { handleMercadoPagoPayment } from "../serverMercadoPago/index";
 
-export const webhookHandler = async (req: Request, res: Response) => {
+export const webhookHandler = async (req: Request, res: Response): Promise<void> => {
   try {
-    // Se a função de verificação retorna erro ou responde, trate aqui
-    const verifyResult = verifyMercadoPagoSignature(req, res);
-    if (verifyResult) return; // assume que verify responde em caso de erro
+    // Verificar a assinatura do Mercado Pago
+    const isValidSignature = verifyMercadoPagoSignature(req, res);
+    if (!isValidSignature) {
+      // A função verifyMercadoPagoSignature já enviou a resposta de erro
+      return;
+    }
 
     const { type, data } = req.body;
 
@@ -26,10 +29,10 @@ export const webhookHandler = async (req: Request, res: Response) => {
       console.log("Tipo de evento não tratado:", type);
     }
 
-    return res.status(200).json({ received: true });
+    res.status(200).json({ received: true });
   } catch (error) {
     console.error("Erro no webhook:", error);
-    return res.status(500).json({ error: "Falha no processamento do webhook" });
+    res.status(500).json({ error: "Falha no processamento do webhook" });
   }
 };
 export default webhookHandler;

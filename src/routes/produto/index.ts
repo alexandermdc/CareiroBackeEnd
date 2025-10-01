@@ -4,6 +4,7 @@ import { getProdutos,
     createProduto,
     updateProduto,
     deleteProduto } from '../../controllers/produto';
+import isAuth from '../../middlewares/isAuth';
 
 const router = express.Router();
 
@@ -167,7 +168,7 @@ router.get('/:id', getProdutoById);
  *       400:
  *         description: Dados inválidos
  */
-router.post('/cadastro', createProduto);
+router.post('/cadastro', isAuth, createProduto);
 
 /**
  * @swagger
@@ -222,7 +223,7 @@ router.post('/cadastro', createProduto);
  *       404:
  *         description: Produto não encontrado
  */
-router.put('/:id', updateProduto);
+router.put('/:id', isAuth, updateProduto);
 
 /**
  * @swagger
@@ -244,6 +245,6 @@ router.put('/:id', updateProduto);
  *       404:
  *         description: Produto não encontrado
  */
-router.delete('/:id', deleteProduto);
+router.delete('/:id', isAuth, deleteProduto);
 
 export default router;

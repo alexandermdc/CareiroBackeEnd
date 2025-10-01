@@ -8,8 +8,11 @@ import produtoRoutes from './routes/produto'; // Importando as rotas de produto
 import vendedorRoutes from './routes/vendedor'; // Importando as rotas de vendedor
 import mercadopagoRoutes from './routes/mercadoPago'; // Importando as rotas de mercadoPago
 import authRoutes from './routes/authRoutes'; // Importando as rotas de autenticação
+import refreshRoutes from './routes/refresh'; // Importando as rotas de refresh token
+import webhookRoutes from './routes/webhook'; // Importando as rotas de webhook
 import { setupSwagger } from './swagger/swagger';
 import { autenticarToken } from './controllers/auth/authMiddleware';
+import errorHandler from './middlewares/errorHandler';
 import cors from 'cors';
 
 const app = express();
@@ -62,8 +65,15 @@ setupSwagger(app); // Configurando o Swagger
 // Configurando as rotas de autenticação
 app.use('/auth', authRoutes); // Configurando as rotas de autenticação
 console.log('[INFO] Rotas de autenticação carregadas');
-// Iniciando o servido
+app.use('/refresh', refreshRoutes); // Configurando as rotas de refresh token
+console.log('[INFO] Rotas de refresh token carregadas');
+app.use('/webhook', webhookRoutes); // Configurando as rotas de webhook
+console.log('[INFO] Rotas de webhook carregadas');
 
+// Middleware de tratamento de erros (deve ser o último)
+app.use(errorHandler as any);
+
+// Iniciando o servido
 app.listen(port,'0.0.0.0' ,() => {
   console.log(`Server rodando em http://localhost:${port}`);
 });

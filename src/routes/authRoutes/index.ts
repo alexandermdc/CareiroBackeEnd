@@ -34,15 +34,33 @@ const router = Router();
  *                 example: senha123
  *     responses:
  *       200:
- *         description: Login bem-sucedido com token JWT
+ *         description: Login bem-sucedido com tokens JWT
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 token:
+ *                 accessToken:
  *                   type: string
  *                   example: eyJhbGciOiJIUzI1NiIsInR...
+ *                 refreshToken:
+ *                   type: string
+ *                   example: eyJhbGciOiJIUzI1NiIsInR...
+ *                 expiresIn:
+ *                   type: string
+ *                   example: "1h"
+ *                 cliente:
+ *                   type: object
+ *                   properties:
+ *                     cpf:
+ *                       type: string
+ *                       example: "12345678900"
+ *                     nome:
+ *                       type: string
+ *                       example: "João Silva"
+ *                     email:
+ *                       type: string
+ *                       example: "joao@email.com"
  *       401:
  *         description: Credenciais inválidas
  */

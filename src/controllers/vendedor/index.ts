@@ -40,6 +40,8 @@ export const createVendedor = async (req: Request, res: Response) => {
   const { nome, tipo_vendedor, telefone, endereco_venda, tipo_documento, numero_documento, fk_associacao, senha } = req.body;
 
   try {
+    const senha_segura = await bcrypt.hash(senha, saltRounds);
+
     const result = await prisma.vendedor.create({
       data: {
         id_vendedor: crypto.randomUUID(),
@@ -50,7 +52,7 @@ export const createVendedor = async (req: Request, res: Response) => {
         tipo_documento,
         numero_documento: numero_documento || null,
         fk_associacao: fk_associacao || null,
-        senha
+        senha: senha_segura
       },
     });
 
