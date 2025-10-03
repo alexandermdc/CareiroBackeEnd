@@ -21,7 +21,6 @@ export const getProdutos = async (req: Request, res: Response) => {
       take: takeValue,
       skip: skipValue,
     });
-    console.log("aqui no produtos");
     res.json(result);
   } catch (error) {
     console.error('Erro ao buscar produtos:', error);
@@ -32,7 +31,6 @@ export const getProdutos = async (req: Request, res: Response) => {
 export const getProdutoById = async (req: Request, res: Response) => {
   const id : string = req.params.id; ;
   try {
-    // Tipando a resposta como 'produto'
     const result: produto | null = await prisma.produto.findUnique({
       where: {
         id_produto: id,
@@ -61,7 +59,7 @@ export const createProduto = async (req: Request, res: Response) => {
   try {
     
     const fileName = `${Date.now()}-${imageFile!.originalname}`;
-    const filePath = `produtos/imagens/${fileName}`;
+    const filePath = `${fileName}`;
     const bucketName = 'produtos/imagens';   
 
     const { error: uploadError } = await supabase.storage

@@ -15,6 +15,7 @@ import cors from 'cors';
 const app = express();
 app.use(express.json());
 const port = 3000;
+const host = '0.0.0.0';
 
 app.use(cors()); // Habilitando CORS para todas as rotas
 // Rota principal para verificar conexão com o banco
@@ -43,27 +44,18 @@ app.get('/protegido', autenticarToken, (req, res) => {
 });
 // Configurando as rotas de clientes
 app.use('/clientes', clienteRoutes);
-console.log('[INFO] Rotas de cliente carregadas');
-app.use('/associacao', associacaoRoutes); // Configurando as rotas de associacao
-console.log('[INFO] Rotas de atende um carregadas');
-app.use('/atendeum', atendeUmRoutes); // Configurando as rotas de associado
-console.log('[INFO] Rotas de associado carregadas');
-app.use('/pedido', pedidoRoutes); // Configurando as rotas de clienteVendedor
-console.log('[INFO] Rotas de pedidos carregadas');
-app.use('/feira', feiraRoutes); // Configurando as rotas de feira
-console.log('[INFO] Rotas de feira carregadas');
-app.use('/produto', produtoRoutes); // Configurando as rotas de produto
+app.use('/associacao', associacaoRoutes); 
+app.use('/atendeum', atendeUmRoutes); 
+app.use('/pedido', pedidoRoutes); 
+app.use('/feira', feiraRoutes);
+app.use('/produto', produtoRoutes);
 console.log('[INFO] Rotas de produto carregadas');
-app.use('/vendedor', vendedorRoutes); // Configurando as rotas de vendedor
-console.log('[INFO] Rotas de vendedor carregadas');
+app.use('/vendedor', vendedorRoutes); 
 app.use('/mercadopago', mercadopagoRoutes); // Configurando as rotas de mercadoPago
-console.log('[INFO] Rotas de mercadoPago carregadas');
 setupSwagger(app); // Configurando o Swagger
-// Configurando as rotas de autenticação
 app.use('/auth', authRoutes); // Configurando as rotas de autenticação
-console.log('[INFO] Rotas de autenticação carregadas');
-// Iniciando o servido
 
-app.listen(port,'0.0.0.0' ,() => {
-  console.log(`Server rodando em http://localhost:${port}`);
+
+app.listen(port, host ,() => {
+  console.log(`Server rodando em http://${host}:${port}`);
 });
