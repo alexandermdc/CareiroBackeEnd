@@ -41,6 +41,9 @@ app.get('/tables', async (req, res) => {
 app.get('/protegido', autenticarToken, (req, res) => { 
   res.send(`Rota protegida, você está autenticado!, acesso permitido ${req.user.email}`);
 });
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+})
 // Configurando as rotas de clientes
 app.use('/clientes', clienteRoutes);
 app.use('/associacao', associacaoRoutes); 
