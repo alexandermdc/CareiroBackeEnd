@@ -3,14 +3,13 @@ import { getProdutos,
     getProdutoById,
     createProduto,
     updateProduto,
-    deleteProduto } from '../../controllers/produto';
+    deleteProduto,
+    getProdutosByCategoria} from '../../controllers/produto';
 import isAuth from '../../middlewares/isAuth';
 import multer from 'multer';
 import { validate } from '../../middlewares/validateSchema';
 import { createProdutoSchema } from '../../schemas/produto';
-import multer from 'multer';
-import { validate } from '../../middlewares/validateSchema';
-import { createProdutoSchema } from '../../schemas/produto';
+
 
 const router = express.Router();
 const upload = multer({storage: multer.memoryStorage()})
@@ -123,6 +122,7 @@ router.get('/', getProdutos);
  *         description: Produto não encontrado
  */
 router.get('/:id', getProdutoById);
+router.get('/categoria/:nome_categoria', getProdutosByCategoria);
 
 /**
  * @swagger
