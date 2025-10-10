@@ -8,6 +8,10 @@ import isAuth from '../../middlewares/isAuth';
 import multer from 'multer';
 import { validate } from '../../middlewares/validateSchema';
 import { createProdutoSchema } from '../../schemas/produto';
+import multer from 'multer';
+import { validate } from '../../middlewares/validateSchema';
+import { createProdutoSchema } from '../../schemas/produto';
+
 const router = express.Router();
 const upload = multer({storage: multer.memoryStorage()})
 

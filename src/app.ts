@@ -48,6 +48,7 @@ app.get('/protegido', autenticarToken, (req, res) => {
 });
 // Configurando as rotas de clientes
 app.use('/clientes', clienteRoutes);
+
 console.log('[INFO] Rotas de cliente carregadas');
 app.use('/associacao', associacaoRoutes); // Configurando as rotas de associacao
 console.log('[INFO] Rotas de atende um carregadas');
@@ -60,6 +61,7 @@ console.log('[INFO] Rotas de feira carregadas');
 app.use('/produto', produtoRoutes); // Configurando as rotas de produto
 app.use('/categoria', categoriaRoutes); // Configurando as rotas de categoria
 console.log('[INFO] Rotas de categoria carregadas');
+
 app.use('/associacao', associacaoRoutes); 
 app.use('/atendeum', atendeUmRoutes); 
 app.use('/pedido', pedidoRoutes); 
@@ -70,6 +72,7 @@ app.use('/vendedor', vendedorRoutes);
 app.use('/mercadopago', mercadopagoRoutes); // Configurando as rotas de mercadoPago
 setupSwagger(app); // Configurando o Swagger
 app.use('/auth', authRoutes); // Configurando as rotas de autenticação
+
 console.log('[INFO] Rotas de autenticação carregadas');
 app.use('/refresh', refreshRoutes); // Configurando as rotas de refresh token
 console.log('[INFO] Rotas de refresh token carregadas');
@@ -80,6 +83,7 @@ console.log('[INFO] Rotas de webhook carregadas');
 app.use(errorHandler as any);
 
 // Iniciando o servido
+
 app.listen(port, host ,() => {
   console.log(`Server rodando em http://${host}:${port}`);
 });
