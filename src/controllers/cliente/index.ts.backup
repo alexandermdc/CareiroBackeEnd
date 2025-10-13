@@ -64,22 +64,11 @@ export const atualizarCliente = async (req: Request, res: Response): Promise<voi
   const { nome, email, telefone, senha } = req.body;
 
   try {
-    // Preparar dados para atualização
-    const dataToUpdate: any = {};
-    
-    if (nome !== undefined) dataToUpdate.nome = nome;
-    if (email !== undefined) dataToUpdate.email = email;
-    if (telefone !== undefined) dataToUpdate.telefone = telefone;
-    
-    // Apenas fazer hash da senha se ela for fornecida
-    if (senha !== undefined && senha !== '') {
-      const senha_segura = await bcrypt.hash(senha, saltRounds);
-      dataToUpdate.senha = senha_segura;
-    }
+    const senha_segura = await bcrypt.hash(senha, saltRounds);
 
     const clienteAtualizado: cliente = await prisma.cliente.update({
       where: { cpf },
-      data: dataToUpdate,
+      data: { nome, email, telefone, senha:senha_segura},
     });
 
     console.log('Cliente atualizado:', clienteAtualizado);

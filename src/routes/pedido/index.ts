@@ -21,11 +21,13 @@ const router = express.Router();
  * @swagger
  * /pedido:
  *   get:
- *     summary: Lista todos os pedidos
+ *     summary: Lista pedidos do usuário autenticado
  *     tags: [Pedido]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Lista de pedidos
+ *         description: Lista de pedidos do usuário
  *         content:
  *           application/json:
  *             schema:
@@ -46,15 +48,19 @@ const router = express.Router();
  *                   fk_cliente:
  *                     type: string
  *                     example: 'cliente@email.com'
+ *       401:
+ *         description: Token não fornecido ou inválido
  */
-router.get('/', getPedidos);
+router.get('/', isAuth, getPedidos);
 
 /**
  * @swagger
  * /pedido/{id}:
  *   get:
- *     summary: Busca um pedido pelo ID
+ *     summary: Busca um pedido pelo ID (apenas do usuário autenticado)
  *     tags: [Pedido]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -83,10 +89,14 @@ router.get('/', getPedidos);
  *                 fk_cliente:
  *                   type: string
  *                   example: 'cliente@email.com'
+ *       401:
+ *         description: Token não fornecido ou inválido
+ *       403:
+ *         description: Acesso negado - pedido não pertence ao usuário
  *       404:
  *         description: Pedido não encontrado
  */
-router.get('/:id', getPedidoById);
+router.get('/:id', isAuth, getPedidoById);
 
 /**
  * @swagger

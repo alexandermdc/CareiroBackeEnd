@@ -6,6 +6,7 @@ import {
   updateVendedor,
   deleteVendedor,
 } from '../../controllers/vendedor';
+import isAuth from '../../middlewares/isAuth';
 
 const router = express.Router();
 
@@ -211,7 +212,7 @@ router.post('/cadastro', createVendedor);
  *       404:
  *         description: Vendedor não encontrado
  */
-router.put('/:id', updateVendedor);
+router.put('/:id', isAuth, updateVendedor);
 
 /**
  * @swagger
@@ -233,5 +234,5 @@ router.put('/:id', updateVendedor);
  *       404:
  *         description: Vendedor não encontrado
  */
-router.delete('/:id', deleteVendedor); 
+router.delete('/:id', isAuth, deleteVendedor); 
 export default router;

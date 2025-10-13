@@ -1,16 +1,14 @@
 import { Request, Response } from 'express';
 import prisma from '../../config/dbConfig'; // Importe o cliente Prisma corretamente
-import { produto } from '@prisma/client'; // Importando o tipo 'produto' gerado pelo Prisma
-import { skip } from '@prisma/client/runtime/library';
-import { takeCoverage } from 'v8';
+import { categoria, produto } from '@prisma/client'; // Importando o tipo 'produto' gerado pelo Prisma
 import { supabase } from '../../config/supabaseConfig';
 import { CreateProdutoInput } from '../../schemas/produto';
 
 
 export const getProdutos = async (req: Request, res: Response) => {
 
-  const limit = parseInt(req.query.limit as string, 10);
-  const skip = parseInt(req.query.skip as string, 20)
+  const limit = parseInt(req.query.limit as string);
+  const skip = parseInt(req.query.offset as string)
 
   const takeValue = isNaN(limit) || limit <= 0 ? 10 : limit; 
   const skipValue = isNaN(skip) || skip < 0 ? 0 : skip;
@@ -35,6 +33,9 @@ export const getProdutoById = async (req: Request, res: Response) => {
       where: {
         id_produto: id,
       },
+      include: {
+        vendedor: true
+      }
     });
 
     if (result) {
@@ -42,6 +43,26 @@ export const getProdutoById = async (req: Request, res: Response) => {
     } else {
       res.status(404).send('Produto não encontrado');
     }
+  } catch (error) {
+    console.error('Erro ao buscar produto:', error);
+    res.status(500).send('Erro ao buscar produto');
+  }
+};
+
+export const getProdutosByCategoria = async (req: Request, res: Response) => {
+  const nome_categoria : string = req.params.nome_categoria;
+  try {
+    
+    const result: produto[] = await prisma.produto.findMany({
+      where: {
+        categoria: {
+          nome: {
+            equals: nome_categoria,
+          }
+        },
+      },
+    });
+    res.json(result)
   } catch (error) {
     console.error('Erro ao buscar produto:', error);
     res.status(500).send('Erro ao buscar produto');
@@ -179,6 +200,7 @@ export const deleteProduto = async (req: Request, res: Response) => {
 export default {
   getProdutos,
   getProdutoById,
+  getProdutosByCategoria,
   createProduto,
   updateProduto,
   deleteProduto,

@@ -3,3 +3,4 @@ prisma/
 node_modules/
 .env
 .vscode/
+*.md

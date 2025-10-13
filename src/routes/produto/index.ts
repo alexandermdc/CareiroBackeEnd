@@ -3,10 +3,13 @@ import { getProdutos,
     getProdutoById,
     createProduto,
     updateProduto,
-    deleteProduto } from '../../controllers/produto';
+    deleteProduto,
+    getProdutosByCategoria} from '../../controllers/produto';
+import isAuth from '../../middlewares/isAuth';
 import multer from 'multer';
 import { validate } from '../../middlewares/validateSchema';
 import { createProdutoSchema } from '../../schemas/produto';
+
 
 const router = express.Router();
 const upload = multer({storage: multer.memoryStorage()})
@@ -119,6 +122,7 @@ router.get('/', getProdutos);
  *         description: Produto não encontrado
  */
 router.get('/:id', getProdutoById);
+router.get('/categoria/:nome_categoria', getProdutosByCategoria);
 
 /**
  * @swagger
@@ -171,6 +175,9 @@ router.get('/:id', getProdutoById);
  *       400:
  *         description: Dados inválidos
  */
+
+router.post('/cadastro', isAuth, createProduto);
+
 router.post('/cadastro',
      upload.single('image'),
      validate(createProdutoSchema)
@@ -229,7 +236,7 @@ router.post('/cadastro',
  *       404:
  *         description: Produto não encontrado
  */
-router.put('/:id', updateProduto);
+router.put('/:id', isAuth, updateProduto);
 
 /**
  * @swagger
@@ -251,6 +258,6 @@ router.put('/:id', updateProduto);
  *       404:
  *         description: Produto não encontrado
  */
-router.delete('/:id', deleteProduto);
+router.delete('/:id', isAuth, deleteProduto);
 
 export default router;

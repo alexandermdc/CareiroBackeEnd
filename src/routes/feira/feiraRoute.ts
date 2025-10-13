@@ -6,6 +6,7 @@ import {
     updateFeira, 
     deleteFeira 
 } from '../../controllers/feira';
+import isAuth from '../../middlewares/isAuth';
 
 const router = express.Router();
 
@@ -114,22 +115,24 @@ router.get('/:id', getFeiraById);
  *       400:
  *         description: Dados inválidos
  */
-router.post('/', createFeira);
+router.post('/', isAuth, createFeira);
 
 
 /**
  * @swagger
  * /feiras/{id}:
  *   put:
- *     summary: Atualiza um cliente pelo CPF
- *     tags: [Clientes]
+ *     summary: Atualiza uma feira pelo ID
+ *     tags: [Feiras]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: cpf
+ *         name: id
  *         required: true
  *         schema:
  *           type: string
- *         description: CPF do cliente a ser atualizado
+ *         description: ID da feira a ser atualizada
  *     requestBody:
  *       required: true
  *       content:
@@ -139,40 +142,44 @@ router.post('/', createFeira);
  *             properties:
  *               nome:
  *                 type: string
- *                 example: 'Alexander Atualizado'
- *               email:
+ *                 example: 'Feira Atualizada'
+ *               endereco:
  *                 type: string
- *                 example: 'alexanderatualizado@email.com'
+ *                 example: 'Novo Endereço'
  *     responses:
  *       200:
- *         description: Cliente atualizado com sucesso
- *       400:
- *         description: Dados inválidos
+ *         description: Feira atualizada com sucesso
+ *       401:
+ *         description: Token não fornecido ou inválido
  *       404:
- *         description: Cliente não encontrado
+ *         description: Feira não encontrada
  */
-router.put('/:id', updateFeira);
+router.put('/:id', isAuth, updateFeira);
 
 
 /**
  * @swagger
  * /feiras/{id}:
  *   delete:
- *     summary: Deleta uam feira pelo Id
+ *     summary: Deleta uma feira pelo ID
  *     tags: [Feiras]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: string
- *         description: Id da feira a ser deletado
+ *         description: ID da feira a ser deletada
  *     responses:
  *       204:
- *         description: Feira deletado com sucesso
+ *         description: Feira deletada com sucesso
+ *       401:
+ *         description: Token não fornecido ou inválido
  *       404:
- *         description: Feira não encontrado
+ *         description: Feira não encontrada
  */
-router.delete('/:id', deleteFeira);
+router.delete('/:id', isAuth, deleteFeira);
 
 export default router;

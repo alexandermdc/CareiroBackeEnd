@@ -8,6 +8,7 @@ import {
   adicionarFavorito,
   listarFavoritos
 } from '../../controllers/cliente';
+import isAuth from '../../middlewares/isAuth';
 
 const router = express.Router();
 
@@ -149,7 +150,7 @@ router.post('/', criarCliente);
  *       404:
  *         description: Cliente não encontrado
  */
-router.put('/:cpf', atualizarCliente);
+router.put('/:cpf', isAuth, atualizarCliente);
 
 /**
  * @swagger
@@ -170,10 +171,10 @@ router.put('/:cpf', atualizarCliente);
  *       404:
  *         description: Cliente não encontrado
  */
-router.delete('/:cpf', deletarCliente);
+router.delete('/:cpf', isAuth, deletarCliente);
 
-router.put("/:cpf/favoritos", adicionarFavorito);
+router.put("/:cpf/favoritos", isAuth, adicionarFavorito);
 
-router.get("/:cpf/favoritos", listarFavoritos)
+router.get("/:cpf/favoritos", isAuth, listarFavoritos)
 
 export default router;

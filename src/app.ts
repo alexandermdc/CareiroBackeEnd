@@ -5,11 +5,15 @@ import atendeUmRoutes from './routes/atende_um'; // Importando as rotas de assoc
 import feiraRoutes from './routes/feira/feiraRoute'; // Importando as rotas de feira
 import pedidoRoutes from './routes/pedido'; // Importando as rotas de pedido
 import produtoRoutes from './routes/produto'; // Importando as rotas de produto
+import categoriaRoutes from './routes/categoria'; // Importando as rotas de categoria
 import vendedorRoutes from './routes/vendedor'; // Importando as rotas de vendedor
 import mercadopagoRoutes from './routes/mercadoPago'; // Importando as rotas de mercadoPago
 import authRoutes from './routes/authRoutes'; // Importando as rotas de autenticação
+import refreshRoutes from './routes/refresh'; // Importando as rotas de refresh token
+import webhookRoutes from './routes/webhook'; // Importando as rotas de webhook
 import { setupSwagger } from './swagger/swagger';
 import { autenticarToken } from './controllers/auth/authMiddleware';
+import errorHandler from './middlewares/errorHandler';
 import cors from 'cors';
 
 const app = express();
@@ -46,6 +50,20 @@ app.get('/health', (req, res) => {
 })
 // Configurando as rotas de clientes
 app.use('/clientes', clienteRoutes);
+
+console.log('[INFO] Rotas de cliente carregadas');
+app.use('/associacao', associacaoRoutes); // Configurando as rotas de associacao
+console.log('[INFO] Rotas de atende um carregadas');
+app.use('/atendeum', atendeUmRoutes); // Configurando as rotas de associado
+console.log('[INFO] Rotas de associado carregadas');
+app.use('/pedido', pedidoRoutes); // Configurando as rotas de clienteVendedor
+console.log('[INFO] Rotas de pedidos carregadas');
+app.use('/feira', feiraRoutes); // Configurando as rotas de feira
+console.log('[INFO] Rotas de feira carregadas');
+app.use('/produto', produtoRoutes); // Configurando as rotas de produto
+app.use('/categoria', categoriaRoutes); // Configurando as rotas de categoria
+console.log('[INFO] Rotas de categoria carregadas');
+
 app.use('/associacao', associacaoRoutes); 
 app.use('/atendeum', atendeUmRoutes); 
 app.use('/pedido', pedidoRoutes); 
@@ -57,6 +75,16 @@ app.use('/mercadopago', mercadopagoRoutes); // Configurando as rotas de mercadoP
 setupSwagger(app); // Configurando o Swagger
 app.use('/auth', authRoutes); // Configurando as rotas de autenticação
 
+console.log('[INFO] Rotas de autenticação carregadas');
+app.use('/refresh', refreshRoutes); // Configurando as rotas de refresh token
+console.log('[INFO] Rotas de refresh token carregadas');
+app.use('/webhook', webhookRoutes); // Configurando as rotas de webhook
+console.log('[INFO] Rotas de webhook carregadas');
+
+// Middleware de tratamento de erros (deve ser o último)
+app.use(errorHandler as any);
+
+// Iniciando o servido
 
 app.listen(port, () => {
   console.log(`Server rodando em ${port}`);
