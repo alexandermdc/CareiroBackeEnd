@@ -4,7 +4,9 @@ import { getProdutos,
     createProduto,
     updateProduto,
     deleteProduto,
-    getProdutosByCategoria} from '../../controllers/produto';
+    getProdutosByCategoria,
+    getProdutosCount,
+    getProdutosByCategoriaCount} from '../../controllers/produto';
 import isAuth from '../../middlewares/isAuth';
 import multer from 'multer';
 import { validate } from '../../middlewares/validateSchema';
@@ -121,8 +123,10 @@ router.get('/', getProdutos);
  *       404:
  *         description: Produto não encontrado
  */
+router.get('/count', getProdutosCount)
 router.get('/:id', getProdutoById);
 router.get('/categoria/:nome_categoria', getProdutosByCategoria);
+router.get('/count/categoria/:nome_categoria', getProdutosByCategoriaCount)
 
 /**
  * @swagger
