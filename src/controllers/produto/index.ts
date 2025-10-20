@@ -3,6 +3,7 @@ import prisma from '../../config/dbConfig'; // Importe o cliente Prisma corretam
 import { categoria, produto } from '@prisma/client'; // Importando o tipo 'produto' gerado pelo Prisma
 import { supabase } from '../../config/supabaseConfig';
 import { CreateProdutoInput } from '../../schemas/produto';
+import { where } from 'sequelize';
 
 
 export const getProdutos = async (req: Request, res: Response) => {
@@ -23,6 +24,36 @@ export const getProdutos = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Erro ao buscar produtos:', error);
     res.status(500).send('Erro ao buscar produtos');
+  }
+};
+
+export const getProdutosCount = async (req: Request, res: Response) => {
+  try{
+    const produtosCount = await prisma.produto.count()
+    res.json({total: produtosCount})
+  } catch (error) {
+    console.error('Erro ao buscar total de produtos', error);
+    res.status(500).send('Erro ao buscar total de produtos');
+  }
+};
+
+export const getProdutosByCategoriaCount = async (req: Request, res: Response) => {
+  const nome_categoria : string = req.params.nome_categoria;
+  try{
+    const produtosByCategoriaCount = await prisma.produto.count({
+      where: {
+        categoria: {
+          nome: {
+            equals: nome_categoria,
+            mode: 'insensitive'
+          }
+        },
+      },
+    })
+    res.json({total: produtosByCategoriaCount})
+  } catch (error) {
+    console.error('Erro ao buscar total de produtos', error);
+    res.status(500).send('Erro ao buscar total de produtos');
   }
 };
 
@@ -51,16 +82,25 @@ export const getProdutoById = async (req: Request, res: Response) => {
 
 export const getProdutosByCategoria = async (req: Request, res: Response) => {
   const nome_categoria : string = req.params.nome_categoria;
+
+  const limit = parseInt(req.query.limit as string);
+  const skip = parseInt(req.query.offset as string)
+
+  const takeValue = isNaN(limit) || limit <= 0 ? 10 : limit; 
+  const skipValue = isNaN(skip) || skip < 0 ? 0 : skip;
+
   try {
-    
     const result: produto[] = await prisma.produto.findMany({
       where: {
         categoria: {
           nome: {
             equals: nome_categoria,
+            mode: 'insensitive'
           }
         },
       },
+      take: takeValue,
+      skip: skipValue,
     });
     res.json(result)
   } catch (error) {
@@ -204,4 +244,6 @@ export default {
   createProduto,
   updateProduto,
   deleteProduto,
+  getProdutosCount,
+  getProdutosByCategoriaCount
 };
