@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
@@ -26,13 +26,14 @@ model atende_um {
 }
 
 model cliente {
-  cpf      String   @id @db.VarChar(11)
-  nome     String
-  email    String   @unique
-  telefone String   @db.VarChar(11)
-  senha    String   @db.VarChar(100)
-  pedido   pedido[]
+  cpf       String        @id @db.VarChar(11)
+  nome      String
+  email     String        @unique
+  telefone  String        @db.VarChar(11)
+  senha     String        @db.VarChar(100)
   favoritos favorita_um[]
+  pedido    pedido[]
+  sacola    sacola_de_compras? 
 }
 
 model feira {
@@ -43,37 +44,38 @@ model feira {
 }
 
 model pedido {
-  pedido_id   Int         @id @default(autoincrement())
-  data_pedido DateTime    @default(dbgenerated("CURRENT_DATE")) @db.Date
-  fk_feira    Int?
-  fk_cliente  String      @db.VarChar(11)
-  atende_um   atende_um[]
-  cliente     cliente     @relation(fields: [fk_cliente], references: [cpf], onDelete: NoAction, onUpdate: NoAction, map: "fk_cliente")
-  feira       feira?      @relation(fields: [fk_feira], references: [id_feira], onDelete: NoAction, onUpdate: NoAction, map: "fk_feira")
+  pedido_id          Int           @id @default(autoincrement())
+  data_pedido        DateTime      @default(dbgenerated("CURRENT_DATE")) @db.Date
+  fk_feira           Int?
+  fk_cliente         String        @db.VarChar(11)
+  atende_um          atende_um[]
   produtos_no_pedido item_pedido[]
+  cliente            cliente       @relation(fields: [fk_cliente], references: [cpf], onDelete: NoAction, onUpdate: NoAction, map: "fk_cliente")
+  feira              feira?        @relation(fields: [fk_feira], references: [id_feira], onDelete: NoAction, onUpdate: NoAction, map: "fk_feira")
 }
 
 model categoria {
-  id_categoria String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   nome         String
+  id_categoria String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   produto      produto[]
 }
 
 model produto {
-  id_produto     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  nome           String
-  descricao      String
-  image          String
-  is_promocao    Boolean
-  preco          Float
-  preco_promocao Float?
-  fk_vendedor    String    @db.Uuid
-  id_categoria   String    @db.Uuid
-  disponivel     Boolean
-  vendedor       vendedor  @relation(fields: [fk_vendedor], references: [id_vendedor], onDelete: NoAction, onUpdate: NoAction, map: "fk_vendedor")
-  categoria      categoria @relation(fields: [id_categoria], references: [id_categoria])
+  id_produto       String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nome             String
+  preco            Float
+  fk_vendedor      String        @db.Uuid
+  descricao        String
+  image            String
+  is_promocao      Boolean
+  preco_promocao   Float?
+  id_categoria     String        @db.Uuid
+  disponivel       Boolean
   favoritado_por   favorita_um[]
   itens_em_pedidos item_pedido[]
+  vendedor         vendedor      @relation(fields: [fk_vendedor], references: [id_vendedor], onDelete: NoAction, onUpdate: NoAction, map: "fk_vendedor")
+  categoria        categoria     @relation(fields: [id_categoria], references: [id_categoria])
+  em_sacolas sacola_produtos[] 
 }
 
 model vendedor {
@@ -83,7 +85,7 @@ model vendedor {
   tipo_vendedor    tipo_vendedor
   tipo_documento   tipo_documento
   numero_documento String
-  id_vendedor      String         @id @db.Uuid
+  id_vendedor      String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   fk_associacao    String?        @db.Uuid
   senha            String         @db.VarChar(100)
   atende_um        atende_um[]
@@ -92,24 +94,40 @@ model vendedor {
 }
 
 model item_pedido {
-  id_item_pedido String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  quantidade Int
-
-  pedido_id Int
-  produto_id String @db.Uuid
-
-  produto produto @relation(fields: [produto_id], references: [id_produto])
-  pedido pedido @relation(fields: [pedido_id], references: [pedido_id])
+  id_item_pedido String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  quantidade     Int
+  pedido_id      Int
+  produto_id     String  @db.Uuid
+  pedido         pedido  @relation(fields: [pedido_id], references: [pedido_id])
+  produto        produto @relation(fields: [produto_id], references: [id_produto])
 }
 
 model favorita_um {
-  id_favorito       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  cliente           cliente  @relation(fields: [cliente_cpf], references: [cpf])
-  cliente_cpf       String   @db.VarChar(11)
-  produto           produto  @relation(fields: [produto_id], references: [id_produto])
-  produto_id        String   @db.Uuid
+  id_favorito String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cliente_cpf String  @db.VarChar(11)
+  produto_id  String  @db.Uuid
+  cliente     cliente @relation(fields: [cliente_cpf], references: [cpf])
+  produto     produto @relation(fields: [produto_id], references: [id_produto])
 
   @@unique([cliente_cpf, produto_id])
+}
+
+model sacola_de_compras {
+  id_sacola   String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  fk_cliente  String      @db.VarChar(11) @unique
+  cliente     cliente     @relation(fields: [fk_cliente], references: [cpf], map: "fk_cliente", onDelete: NoAction, onUpdate: NoAction)
+  produtos  sacola_produtos[]
+}
+
+model sacola_produtos {
+  id_sacola_pedido String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  quantidade       Int     @default(1) 
+  id_sacola        String  @db.Uuid
+  produto_id       String  @db.Uuid
+  sacola           sacola_de_compras @relation(fields: [id_sacola], references: [id_sacola])
+  produto          produto @relation(fields: [produto_id], references: [id_produto])
+
+  @@unique([id_sacola, produto_id])
 }
 
 enum tipo_documento {
