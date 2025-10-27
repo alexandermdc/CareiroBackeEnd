@@ -71,30 +71,82 @@ export const getPedidoById = async (req: Request, res: Response): Promise<void> 
 };
 
 // POST: Criar novo pedido com produtos
+// POST: Criar novo pedido com produtos
 export const createPedido = async (req: Request, res: Response): Promise<void> => {
+  // produtos deve ser um array: [{ produto_id: number, quantidade: number }, ...]
   const { data_pedido, fk_feira, produtos } = req.body;
-  // Use fk_cliente vindo do token se disponível (fonte confiável)
-  const fk_cliente = (req as any).user?.email || (req as any).user?.cpf || req.body.fk_cliente;
+  // CORREÇÃO: fk_cliente deve ser CPF (VarChar(11)), não email
+  const fk_cliente = (req as any).user?.cpf;
+
+  // Validação básica
+  if (!fk_cliente) {
+    res.status(401).json({ error: 'Usuário não identificado ou CPF não disponível' });
+    return;
+  }
+  
+  console.log('📦 Criando pedido para cliente CPF:', fk_cliente);
+  
+  if (!produtos || !Array.isArray(produtos) || produtos.length === 0) {
+    res.status(400).json({ error: 'A lista de produtos não pode estar vazia' });
+    return;
+  }
 
   try {
-    const novoPedido: pedido = await prisma.pedido.create({
-      data: {
-        data_pedido: new Date(data_pedido),
-        fk_feira,
-        fk_cliente,
-      },
-      include: {
-        
-      }
+    // Usar uma transação para garantir a integridade dos dados
+    const novoPedidoComItens = await prisma.$transaction(async (tx) => {
+      // 1. Criar o registro principal do pedido
+      const novoPedido = await tx.pedido.create({
+        data: {
+          data_pedido: data_pedido ? new Date(data_pedido) : new Date(),
+          fk_feira,
+          fk_cliente,
+        }
+      });
+
+      console.log('✅ Pedido criado:', novoPedido.pedido_id);
+
+      // 2. Preparar os dados dos itens do pedido (tabela 'item_pedido')
+      const itensDoPedidoData = produtos.map((produto: any) => {
+        return {
+          pedido_id: novoPedido.pedido_id,
+          produto_id: produto.produto_id || produto.id_produto, // Aceita ambos
+          quantidade: produto.quantidade,
+        };
+      });
+
+      console.log('📦 Criando itens do pedido:', itensDoPedidoData);
+
+      // 3. Inserir todos os itens do pedido de uma só vez (item_pedido)
+      await tx.item_pedido.createMany({
+        data: itensDoPedidoData,
+      });
+
+      console.log('✅ Itens do pedido criados');
+
+      // 4. Retornar o pedido completo com seus itens para a resposta
+      const pedidoCompleto = await tx.pedido.findUnique({
+        where: { pedido_id: novoPedido.pedido_id },
+        include: {
+          produtos_no_pedido: {
+            include: {
+              produto: true
+            }
+          },
+          cliente: true,
+          feira: true,
+        }
+      });
+      
+      return pedidoCompleto;
     });
 
-    res.status(201).json(novoPedido);
+    res.status(201).json(novoPedidoComItens);
+
   } catch (error) {
     console.error('Erro ao criar pedido:', error);
     res.status(500).send('Erro ao criar pedido');
   }
 };
-
 // PUT: Atualizar pedido (apenas do usuário autenticado)
 export const updatePedido = async (req: Request, res: Response): Promise<void> => {
   const id = parseInt(req.params.id);

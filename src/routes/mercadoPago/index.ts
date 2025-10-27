@@ -56,6 +56,6 @@ const router = express.Router();
  *                   example: "Erro ao criar preferência"
  */
 
-router.post("/", isAuth, criarPagamento);
+router.post("/pagamento", isAuth, criarPagamento);
 
 export default router;

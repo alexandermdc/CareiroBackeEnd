@@ -35,7 +35,8 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
     addRefreshToken(refreshToken);
 
     res.status(200).json({
-      accessToken,
+      token: accessToken,        // Nome padrão para frontend
+      accessToken,               // Compatibilidade
       refreshToken,
       expiresIn: '1h',
       cliente: {
