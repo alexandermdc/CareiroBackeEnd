@@ -6,9 +6,29 @@ import { produto } from '@prisma/client'; // Importando o tipo 'produto' gerado 
 export const getProdutos = async (req: Request, res: Response) => {
   try {
     // Utilizando o Prisma com a tipagem explícita
-    const result: produto[] = await prisma.produto.findMany();
+    const produtos: produto[] = await prisma.produto.findMany();
     console.log("aqui no produtos");
-    res.json(result);
+    
+    // Limpar URLs de imagem inválidas (Google redirects, placeholder, etc)
+    const produtosLimpos = produtos.map(produto => {
+      let imagemLimpa = null;
+      
+      if (produto.image) {
+        const isBase64 = produto.image.startsWith('data:image');
+        const isUrlValida = produto.image.startsWith('http') && 
+                           !produto.image.includes('google.com/url') && 
+                           !produto.image.includes('placeholder.com');
+        
+        imagemLimpa = isBase64 || isUrlValida ? produto.image : null;
+      }
+      
+      return {
+        ...produto,
+        image: imagemLimpa
+      };
+    });
+    
+    res.json(produtosLimpos);
   } catch (error) {
     console.error('Erro ao buscar produtos:', error);
     res.status(500).send('Erro ao buscar produtos');
@@ -26,7 +46,23 @@ export const getProdutoById = async (req: Request, res: Response) => {
     });
 
     if (result) {
-      res.json(result);
+      // Limpar URL de imagem inválida
+      let imagemLimpa = null;
+      
+      if (result.image) {
+        const isBase64 = result.image.startsWith('data:image');
+        const isUrlValida = result.image.startsWith('http') && 
+                           !result.image.includes('google.com/url') && 
+                           !result.image.includes('placeholder.com');
+        
+        imagemLimpa = isBase64 || isUrlValida ? result.image : null;
+      }
+      
+      const produtoLimpo = {
+        ...result,
+        image: imagemLimpa
+      };
+      res.json(produtoLimpo);
     } else {
       res.status(404).send('Produto não encontrado');
     }

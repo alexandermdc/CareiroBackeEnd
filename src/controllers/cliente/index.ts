@@ -166,7 +166,28 @@ export const listarFavoritos = async (req: Request, res: Response): Promise<void
       return;
     }
 
-    const produtosFavoritos = clienteComFavoritos.favoritos.map(fav => fav.produto)
+    const produtosFavoritos = clienteComFavoritos.favoritos.map(fav => {
+      const produto = fav.produto;
+      let imagemLimpa = null;
+      
+      if (produto.image) {
+        const isBase64 = produto.image.startsWith('data:image');
+        const isUrlValida = produto.image.startsWith('http') && 
+                           !produto.image.includes('google.com/url') && 
+                           !produto.image.includes('placeholder.com');
+        
+        imagemLimpa = isBase64 || isUrlValida ? produto.image : null;
+      }
+      
+      return {
+        ...produto,
+        image: imagemLimpa
+      };
+    });
+    
+    console.log('✅ Favoritos encontrados:', produtosFavoritos.length);
+    console.log('📦 Primeiro produto:', produtosFavoritos[0]);
+    
     res.status(200).json(produtosFavoritos);
 
   } catch(error) {
