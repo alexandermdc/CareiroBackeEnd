@@ -118,9 +118,9 @@ export const criarPagamento = async (req: AuthenticatedRequest, res: Response): 
             },
             items: mercadoPagoItems,
             back_urls: {
-                success: `http://localhost:5173/pagamento/sucesso?pedido_id=${pedido_id || ''}`,
-                failure: `http://localhost:5173/pagamento/falha?pedido_id=${pedido_id || ''}`,
-                pending: `http://localhost:5173/pagamento/pendente?pedido_id=${pedido_id || ''}`,
+                success: `http://agriconnect.com.br/pagamento/sucesso?pedido_id=${pedido_id || ''}`,
+                failure: `http://agriconnect.com.br/pagamento/falha?pedido_id=${pedido_id || ''}`,
+                pending: `http://agriconnect.com.br/pagamento/pendente?pedido_id=${pedido_id || ''}`,
             },
         };
 
