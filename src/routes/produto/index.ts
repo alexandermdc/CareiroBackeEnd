@@ -1,12 +1,20 @@
 import express from 'express';
+import { isAuth, isVendedor, isVendedorOrAdmin } from '../../middlewares/isAuth';
 import { getProdutos,
     getProdutoById,
     createProduto,
     updateProduto,
-    deleteProduto } from '../../controllers/produto';
-import { isAuth, isVendedor, isVendedorOrAdmin } from '../../middlewares/isAuth';
+    deleteProduto,
+    getProdutosByCategoria,
+    getProdutosCount,
+    getProdutosByCategoriaCount } from '../../controllers/produto';
+import multer from 'multer';
+import { validate } from '../../middlewares/validateSchema';
+import { createProdutoSchema } from '../../schemas/produto';
+
 
 const router = express.Router();
+const upload = multer({storage: multer.memoryStorage()})
 
 /**
  * @swagger
@@ -115,7 +123,10 @@ router.get('/', getProdutos);
  *       404:
  *         description: Produto não encontrado
  */
+router.get('/count', getProdutosCount)
 router.get('/:id', getProdutoById);
+router.get('/categoria/:nome_categoria', getProdutosByCategoria);
+router.get('/count/categoria/:nome_categoria', getProdutosByCategoriaCount)
 
 /**
  * @swagger
@@ -169,6 +180,11 @@ router.get('/:id', getProdutoById);
  *         description: Dados inválidos
  */
 router.post('/cadastro', isAuth, isVendedor, createProduto);
+
+router.post('/cadastro',
+     upload.single('image'),
+     validate(createProdutoSchema)
+     ,createProduto);
 
 /**
  * @swagger
