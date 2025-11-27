@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import prisma from '../../../config/dbConfig';
+import prisma from '../../config/dbConfig';
 import { pedido } from '@prisma/client';
 
 // GET: Buscar pedidos do usuário autenticado

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import prisma from '../../../config/dbConfig'; // PrismaClient instanciado
+import prisma from '../../config/dbConfig'; // PrismaClient instanciado
 import { cliente } from '@prisma/client'; // Importando o tipo cliente do Prisma
 import { where } from 'sequelize';
 
@@ -166,7 +166,7 @@ export const listarFavoritos = async (req: Request, res: Response): Promise<void
       return;
     }
 
-    const produtosFavoritos = clienteComFavoritos.favoritos.map(fav => {
+    const produtosFavoritos = clienteComFavoritos.favoritos.map((fav: any) => {
       const produto = fav.produto;
       let imagemLimpa = null;
       

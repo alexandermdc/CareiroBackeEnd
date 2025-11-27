@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import mercadopago from "./service"; // importando sua inst\u00e2ncia configurada
 import { Preference } from "mercadopago";
-import prisma from "../../../config/dbConfig";
+import prisma from "../../config/dbConfig";
 
 interface AuthenticatedRequest extends Request {
     user?: { email: string; cpf: string };

@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import prisma from '../../../config/dbConfig'; // Importe o cliente Prisma corretamente
+import prisma from '../../config/dbConfig'; // Importe o cliente Prisma corretamente
 import { categoria, produto } from '@prisma/client'; // Importando o tipo 'produto' gerado pelo Prisma
-import { supabase } from '../../../config/supabaseConfig';
+import { supabase } from '../../config/supabaseConfig';
 import { CreateProdutoInput } from './schemas';
 import { where } from 'sequelize';
 

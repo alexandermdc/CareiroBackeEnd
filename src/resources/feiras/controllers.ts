@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import prisma from '../../../config/dbConfig';
+import prisma from '../../config/dbConfig';
 import { feira } from '@prisma/client';
 
 // Buscar todas as feiras

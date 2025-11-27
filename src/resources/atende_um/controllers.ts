@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import prisma from '../../../config/dbConfig';
+import prisma from '../../config/dbConfig';
 import { atende_um } from '@prisma/client';
 
 export const getAtendeUm = async (req: Request, res: Response): Promise<void> => {

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { verifyToken } from '../controllers/auth/jwt';
+import { verifyToken } from '../../resources/auth/jwt';
 
 declare global {
   namespace Express {

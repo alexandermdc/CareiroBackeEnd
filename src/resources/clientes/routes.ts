@@ -11,7 +11,7 @@ import {
 } from './controllers';
 import isAuth from '../../shared/middlewares/isAuth';
 import { validarCPFParam, validarCPFBody } from '../../shared/middlewares/validarCPF';
-import { validarCPF } from '../../utils/cpfValidator';
+import { validarCPF } from '../../shared/utils/cpfValidator';
 
 const router = express.Router();
 

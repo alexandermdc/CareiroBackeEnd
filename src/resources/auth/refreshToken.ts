@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import prisma from "../../../config/dbConfig";
+import prisma from "../../config/dbConfig";
 import { gerarToken, gerarRefreshToken, verifyRefreshToken } from "./jwt";
 
 // Armazenar refresh tokens válidos (em produção, use Redis ou banco de dados)

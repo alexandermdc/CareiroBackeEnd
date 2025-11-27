@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import prisma from '../../../config/dbConfig';
+import prisma from '../../config/dbConfig';
 import { associacao } from '@prisma/client';
 
 // Listar todas as associações (público)
