@@ -1,19 +1,19 @@
 import express from 'express';
-import clienteRoutes from './routes/clientes/clientesRoute'; // Importando as rotas de clientes
-import associacaoRoutes from './routes/associacao'; // Importando as rotas de associacao */
-import atendeUmRoutes from './routes/atende_um'; // Importando as rotas de associado
-import feiraRoutes from './routes/feira/feiraRoute'; // Importando as rotas de feira
-import pedidoRoutes from './routes/pedido'; // Importando as rotas de pedido
-import produtoRoutes from './routes/produto'; // Importando as rotas de produto
-import categoriaRoutes from './routes/categoria'; // Importando as rotas de categoria
-import vendedorRoutes from './routes/vendedor'; // Importando as rotas de vendedor
-import mercadopagoRoutes from './routes/mercadoPago'; // Importando as rotas de mercadoPago
-import authRoutes from './routes/authRoutes'; // Importando as rotas de autenticação
-import refreshRoutes from './routes/refresh'; // Importando as rotas de refresh token
-import webhookRoutes from './routes/webhook'; // Importando as rotas de webhook
+import clienteRoutes from './resources/clientes/routes'; // Importando as rotas de clientes
+import associacaoRoutes from './resources/associacoes/routes'; // Importando as rotas de associacao
+import atendeUmRoutes from './resources/atende_um/routes'; // Importando as rotas de associado
+import feiraRoutes from './resources/feiras/routes'; // Importando as rotas de feira
+import pedidoRoutes from './resources/pedidos/routes'; // Importando as rotas de pedido
+import produtoRoutes from './resources/produtos/routes'; // Importando as rotas de produto
+import categoriaRoutes from './resources/categorias/routes'; // Importando as rotas de categoria
+import vendedorRoutes from './resources/vendedores/routes'; // Importando as rotas de vendedor
+import mercadopagoRoutes from './resources/mercadopago/routes'; // Importando as rotas de mercadoPago
+import authRoutes from './resources/auth/routes'; // Importando as rotas de autenticação
+import refreshRoutes from './resources/refresh/routes'; // Importando as rotas de refresh token
+import webhookRoutes from './resources/webhook/routes'; // Importando as rotas de webhook
 import { setupSwagger } from './swagger/swagger';
-import { autenticarToken } from './controllers/auth/authMiddleware';
-import errorHandler from './middlewares/errorHandler';
+import { autenticarToken } from './resources/auth/authMiddleware';
+import errorHandler from './shared/middlewares/errorHandler';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
