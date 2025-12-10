@@ -152,15 +152,20 @@ export const createProduto = async (req: Request, res: Response) => {
   const imageFile = req.file; 
 
   try {
+    // Validar se a imagem foi enviada
+    if (!imageFile) {
+      res.status(400).json({ error: 'Imagem do produto é obrigatória' });
+      return;
+    }
     
-    const fileName = `${Date.now()}-${imageFile!.originalname}`;
+    const fileName = `${Date.now()}-${imageFile.originalname}`;
     const filePath = `${fileName}`;
     const bucketName = 'produtos/imagens';   
 
     const { error: uploadError } = await supabase.storage
       .from(bucketName)
-      .upload(filePath, imageFile!.buffer, {
-        contentType: imageFile!.mimetype,
+      .upload(filePath, imageFile.buffer, {
+        contentType: imageFile.mimetype,
         upsert: false,
       });
 

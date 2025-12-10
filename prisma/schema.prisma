@@ -4,9 +4,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model associacao {
@@ -26,14 +25,16 @@ model atende_um {
 }
 
 model cliente {
-  cpf       String        @id @db.VarChar(11)
-  nome      String
-  email     String        @unique
-  telefone  String        @db.VarChar(11)
-  senha     String        @db.VarChar(100)
-  favoritos favorita_um[]
-  pedido    pedido[]
-  sacola    sacola_de_compras? 
+  cpf           String        @id @db.VarChar(11)
+  nome          String
+  email         String        @unique
+  telefone      String        @db.VarChar(11)
+  senha         String        @db.VarChar(100)
+  tipo_usuario  TipoUsuario   @default(CLIENTE)
+  
+  favoritos     favorita_um[]
+  pedido        pedido[]
+  sacola        sacola_de_compras?
 }
 
 model feira {
@@ -46,6 +47,7 @@ model feira {
 model pedido {
   pedido_id          Int           @id @default(autoincrement())
   data_pedido        DateTime      @default(dbgenerated("CURRENT_DATE")) @db.Date
+  status             String        @default("PENDENTE")
   fk_feira           Int?
   fk_cliente         String        @db.VarChar(11)
   atende_um          atende_um[]
@@ -80,6 +82,7 @@ model produto {
 
 model vendedor {
   nome             String
+  email            String         @unique
   telefone         String         @db.VarChar(15)
   endereco_venda   String
   tipo_vendedor    tipo_vendedor
@@ -88,6 +91,8 @@ model vendedor {
   id_vendedor      String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   fk_associacao    String?        @db.Uuid
   senha            String         @db.VarChar(100)
+  tipo_usuario     TipoUsuario    @default(VENDEDOR)
+  
   atende_um        atende_um[]
   produto          produto[]
   associacao       associacao?    @relation(fields: [fk_associacao], references: [id_associacao], onDelete: NoAction, onUpdate: NoAction, map: "fk_associacao")
@@ -138,4 +143,10 @@ enum tipo_documento {
 enum tipo_vendedor {
   PF
   PJ
+}
+
+enum TipoUsuario {
+  CLIENTE
+  VENDEDOR
+  ADMIN
 }

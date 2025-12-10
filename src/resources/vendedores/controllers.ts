@@ -37,22 +37,30 @@ export const getVendedorById = async (req: Request, res: Response) => {
 
 // Função para criar um novo vendedor
 export const createVendedor = async (req: Request, res: Response) => {
-  const { nome, tipo_vendedor, telefone, endereco_venda, tipo_documento, numero_documento, fk_associacao, senha } = req.body;
+  const { nome, email, tipo_vendedor, telefone, endereco_venda, tipo_documento, numero_documento, fk_associacao, senha } = req.body;
 
   try {
+    // Validar campos obrigatórios
+    if (!email) {
+      res.status(400).json({ error: 'Email é obrigatório' });
+      return;
+    }
+
     const senha_segura = await bcrypt.hash(senha, saltRounds);
 
     const result = await prisma.vendedor.create({
       data: {
         id_vendedor: crypto.randomUUID(),
         nome,
+        email,
         tipo_vendedor,
         telefone,
         endereco_venda,
         tipo_documento,
         numero_documento: numero_documento || null,
         fk_associacao: fk_associacao || null,
-        senha: senha_segura
+        senha: senha_segura,
+        tipo_usuario: 'VENDEDOR'
       },
     });
 
@@ -66,24 +74,33 @@ export const createVendedor = async (req: Request, res: Response) => {
 // Função para atualizar um vendedor
 export const updateVendedor = async (req: Request, res: Response) => {
   const id = req.params.id;
-  const { nome, tipo_vendedor, telefone, endereco_venda, tipo_documento, numero_documento, fk_associacao, senha } = req.body;
+  const { nome, email, tipo_vendedor, telefone, endereco_venda, tipo_documento, numero_documento, fk_associacao, senha } = req.body;
 
   try {
+    const dataToUpdate: any = {
+      nome,
+      tipo_vendedor,
+      telefone,
+      endereco_venda,
+      tipo_documento,
+      numero_documento,
+      fk_associacao
+    };
 
-    const senha_segura = await bcrypt.hash(senha, saltRounds);
+    // Adicionar email se fornecido
+    if (email) {
+      dataToUpdate.email = email;
+    }
+
+    // Apenas fazer hash da senha se ela for fornecida
+    if (senha) {
+      const senha_segura = await bcrypt.hash(senha, saltRounds);
+      dataToUpdate.senha = senha_segura;
+    }
 
     const result = await prisma.vendedor.update({
       where: { id_vendedor: id },
-      data: {
-        nome,
-        tipo_vendedor,
-        telefone,
-        endereco_venda,
-        tipo_documento,
-        numero_documento,
-        fk_associacao,
-        senha:senha_segura
-      },
+      data: dataToUpdate,
     });
 
     if (result) {

@@ -179,16 +179,14 @@ router.get('/count/categoria/:nome_categoria', getProdutosByCategoriaCount)
  *       400:
  *         description: Dados inválidos
  */
-router.post('/cadastro', isAuth, isVendedor, createProduto);
-
-router.post('/cadastro',
+router.post('/cadastro', 
+     isAuth, 
+     isVendedor,
      upload.single('image'),
-     validate(createProdutoSchema)
-     ,createProduto);
+     validate(createProdutoSchema),
+     createProduto);
 
 /**
- * @swagger
- * /produto/{id}:
  *   put:
  *     summary: Atualiza um produto pelo ID
  *     tags: [Produto]

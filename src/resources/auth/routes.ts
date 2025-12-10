@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { login, loginVendedor } from "./controllers";
+import { login, registrarCliente, registrarVendedor } from "./controllers";
 
 const router = Router();
 
@@ -120,6 +120,12 @@ router.post("/login", login);
  *       401:
  *         description: Credenciais inválidas
  */
-router.post("/login/vendedor", loginVendedor);
+router.post("/login", login);
+
+/**
+ * Rotas de registro
+ */
+router.post("/registrar/cliente", registrarCliente);
+router.post("/registrar/vendedor", registrarVendedor);
 
 export default router;
