@@ -88,4 +88,19 @@ export const isVendedorOrAdmin = (req: Request, res: Response, next: NextFunctio
   next();
 };
 
+// ✅ Middleware: permite CLIENTE ou VENDEDOR (para fazer pedidos)
+export const isClienteOrVendedor = (req: Request, res: Response, next: NextFunction): void => {
+  if (!req.user) {
+    res.status(401).json({ error: 'Usuário não autenticado' });
+    return;
+  }
+
+  if (req.user.tipo !== 'CLIENTE' && req.user.tipo !== 'VENDEDOR') {
+    res.status(403).json({ error: 'Acesso negado. Apenas clientes e vendedores podem fazer pedidos' });
+    return;
+  }
+
+  next();
+};
+
 export default isAuth;

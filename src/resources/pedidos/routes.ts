@@ -6,7 +6,7 @@ import {
   updatePedido,
   deletePedido
 } from './controllers';
-import { isAuth, isCliente } from '../../shared/middlewares/isAuth';
+import { isAuth, isCliente, isClienteOrVendedor } from '../../shared/middlewares/isAuth';
 
 const router = express.Router();
 
@@ -131,7 +131,7 @@ router.get('/:id', isAuth, getPedidoById);
  *       400:
  *         description: Dados inválidos
  */
-router.post('/cadastro', isAuth, isCliente, createPedido);
+router.post('/cadastro', isAuth, isClienteOrVendedor, createPedido);
 
 /**
  * @swagger
