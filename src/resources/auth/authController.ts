@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import prisma from "../../../config/dbConfig";
+import prisma from "../../config/dbConfig";
 import bcrypt from "bcrypt";
 import { gerarToken, gerarRefreshToken } from "./jwt";
 import { addRefreshToken } from "./refreshToken";
