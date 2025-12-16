@@ -3,7 +3,7 @@
 ## Instalação 
 Clonando o Repositório
 ```
-git clone git@github.com:JoseGet/ProjetoCareiroBackEnd.git
+git@github.com:alexandermdc/CareiroBackeEnd.git
 ```
 ## Execução
 ### Buildando e iniciando os Containers Docker!
