@@ -2,7 +2,7 @@
   "type": "commonjs",
   "scripts": {
     "dev": "nodemon --watch src --ext ts --exec ts-node src/app.ts",
-    "build": "tsc",
+    "build": "npx prisma generate && tsc",
     "start": "node dist/app.js",
     "swagger-autogen": "ts-node ./src/utils/swagger.ts"
   },
