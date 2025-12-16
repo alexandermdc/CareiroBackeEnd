@@ -1,19 +1,58 @@
 import { PaymentResponse } from "mercadopago/dist/clients/payment/commonTypes";
+import prisma from "../../config/dbConfig";
 
 export async function handleMercadoPagoPayment(paymentData: PaymentResponse): Promise<void> {
-  const metadata = paymentData.metadata;
-  const userEmail = metadata?.user_email; // snake_case, como o MP converte
-  const testeId = metadata?.teste_id;
+  console.log("💰 Processando pagamento aprovado:", {
+    id: paymentData.id,
+    status: paymentData.status,
+    external_reference: paymentData.external_reference
+  });
 
-  console.log("Pagamento aprovado para:", userEmail);
-  console.log("Referente ao teste:", testeId);
+  // Extrair pedido_id do external_reference (formato: "pedido-123")
+  const externalRef = paymentData.external_reference;
+  if (!externalRef || !externalRef.startsWith('pedido-')) {
+    console.log('⚠️ External reference inválida:', externalRef);
+    return;
+  }
 
-  // Aqui você pode:
-  // - Liberar acesso ao conteúdo
-  // - Marcar status no banco de dados
-  // - Enviar e-mail de confirmação
-  // - Integrar com outro serviço
+  const pedidoId = parseInt(externalRef.replace('pedido-', ''));
+  
+  if (isNaN(pedidoId)) {
+    console.log('⚠️ Pedido ID inválido:', externalRef);
+    return;
+  }
 
-  // Exemplo:
-  // await sendConfirmationEmail(userEmail, testeId);
+  try {
+    // Atualizar status do pedido no banco
+    const pedidoAtualizado = await prisma.pedido.update({
+      where: { pedido_id: pedidoId },
+      data: {
+        status: paymentData.status === 'approved' ? 'PAGO' : paymentData.status?.toUpperCase() || 'PENDENTE',
+        mercadopago_payment_id: String(paymentData.id)
+      },
+      include: {
+        cliente: {
+          select: {
+            nome: true,
+            email: true
+          }
+        },
+        produtos_no_pedido: {
+          include: {
+            produto: true
+          }
+        }
+      }
+    });
+
+    console.log(`✅ Pedido #${pedidoId} atualizado para status: ${pedidoAtualizado.status}`);
+    console.log(`📧 Cliente: ${pedidoAtualizado.cliente.email}`);
+
+    // TODO: Implementar envio de email de confirmação
+    // await enviarEmailConfirmacao(pedidoAtualizado);
+
+  } catch (error: any) {
+    console.error(`❌ Erro ao atualizar pedido #${pedidoId}:`, error.message);
+    throw error;
+  }
 }

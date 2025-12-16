@@ -105,17 +105,31 @@ export const getPedidoById = async (req: Request, res: Response): Promise<void> 
 // POST: Criar novo pedido com produtos
 export const createPedido = async (req: Request, res: Response): Promise<void> => {
   // produtos deve ser um array: [{ produto_id: number, quantidade: number }, ...]
-  const { data_pedido, fk_feira, produtos } = req.body;
-  // CORREÇÃO: fk_cliente deve ser CPF (VarChar(11)), não email
-  const fk_cliente = (req as any).user?.cpf;
-
-  // Validação básica
-  if (!fk_cliente) {
-    res.status(401).json({ error: 'Usuário não identificado ou CPF não disponível' });
+  const { data_pedido, fk_feira, produtos, cpf_cliente } = req.body;
+  
+  const user = (req as any).user;
+  
+  // Determinar o CPF do cliente
+  let fk_cliente: string;
+  
+  if (user?.tipo === 'CLIENTE') {
+    // Cliente faz pedido para si mesmo
+    fk_cliente = user.cpf;
+  } else if (user?.tipo === 'VENDEDOR') {
+    // Vendedor deve informar cpf_cliente (pode ser ele mesmo se também for cliente)
+    if (!cpf_cliente) {
+      res.status(400).json({ 
+        error: 'Vendedores devem informar o cpf_cliente no body da requisição.' 
+      });
+      return;
+    }
+    fk_cliente = cpf_cliente;
+  } else {
+    res.status(403).json({ error: 'Usuário sem permissão para criar pedidos' });
     return;
   }
   
-  console.log('📦 Criando pedido para cliente CPF:', fk_cliente);
+  console.log('📦 Criando pedido para cliente CPF:', fk_cliente, '| Usuário logado:', user?.tipo);
   
   if (!produtos || !Array.isArray(produtos) || produtos.length === 0) {
     res.status(400).json({ error: 'A lista de produtos não pode estar vazia' });
@@ -123,6 +137,30 @@ export const createPedido = async (req: Request, res: Response): Promise<void> =
   }
 
   try {
+    // Se o usuário é VENDEDOR, verificar se ele não está tentando comprar seus próprios produtos
+    if (user?.tipo === 'VENDEDOR' && user?.id_vendedor) {
+      const produtoIds = produtos.map((p: any) => p.produto_id || p.id_produto);
+      
+      const produtosDoVendedor = await prisma.produto.findMany({
+        where: {
+          id_produto: { in: produtoIds },
+          fk_vendedor: user.id_vendedor
+        },
+        select: {
+          id_produto: true,
+          nome: true
+        }
+      });
+
+      if (produtosDoVendedor.length > 0) {
+        const nomesProdutos = produtosDoVendedor.map(p => p.nome).join(', ');
+        res.status(400).json({ 
+          error: `Vendedores não podem comprar seus próprios produtos: ${nomesProdutos}` 
+        });
+        return;
+      }
+    }
+
     // Usar uma transação para garantir a integridade dos dados
     const novoPedidoComItens = await prisma.$transaction(async (tx) => {
       // 1. Criar o registro principal do pedido

@@ -6,7 +6,7 @@ import {
   updatePedido,
   deletePedido
 } from './controllers';
-import { isAuth, isCliente, isClienteOrVendedor } from '../../shared/middlewares/isAuth';
+import { isAuth, isCliente, isVendedor, isClienteOrVendedor } from '../../shared/middlewares/isAuth';
 
 const router = express.Router();
 
