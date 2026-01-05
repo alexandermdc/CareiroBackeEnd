@@ -1,0 +1,76 @@
+{
+  "clientes": [
+    {
+      "cpf": "00000000000",
+      "nome": "Administrador",
+      "email": "admin@agriconect.com.br",
+      "telefone": "00000000000",
+      "senha": "$2b$10$Jdt8Y3t8IZQogyuW916p5ukbwn7FQuVSKsoNeQnvV8pOVzVmwoFNy",
+      "tipo_usuario": "ADMIN"
+    },
+    {
+      "cpf": "02819729231",
+      "nome": "Alexander Nascimento",
+      "email": "alexander.nascimentoc@gmail.com",
+      "telefone": "92981617274",
+      "senha": "$2b$10$eSgjddJ2hTLyw6CgqC/9puGW.AvI08E5zpCbIkr1dmfH/3.WI1rDu",
+      "tipo_usuario": "CLIENTE"
+    },
+    {
+      "cpf": "62830345355",
+      "nome": "Nora Hauswirth",
+      "email": "ascom@terakuno.org",
+      "telefone": "92992051491",
+      "senha": "$2b$10$jYMuubCYymhX2rDkZzv12OyzQDLbBSS2UzkIHhm1nsD0vxVCBVQgu",
+      "tipo_usuario": "CLIENTE"
+    }
+  ],
+  "vendedores": [
+    {
+      "nome": "Alexander Nascimento",
+      "email": "alexander.nascimentoc@gmail.com",
+      "telefone": "92981617274",
+      "endereco_venda": "5\n\nrua Rio Curuça",
+      "tipo_vendedor": "PF",
+      "tipo_documento": "CPF",
+      "numero_documento": "02819729231",
+      "id_vendedor": "b0a3dc3d-7e33-4b75-862a-bbb79cc6f54b",
+      "fk_associacao": null,
+      "senha": "$2b$10$d0NlzKKQID1e55IGrf0ctefbE88oiOnHy7GsS3dxPO0iFsp7x.oiq",
+      "tipo_usuario": "VENDEDOR"
+    }
+  ],
+  "produtos": [
+    {
+      "id_produto": "a4fdde5e-371e-4b6f-86fa-e9b17edccbfb",
+      "nome": "Tomate",
+      "preco": 0.25,
+      "fk_vendedor": "b0a3dc3d-7e33-4b75-862a-bbb79cc6f54b",
+      "descricao": "Tomate",
+      "image": "https://tirewajbsbwnupzrfkbt.supabase.co/storage/v1/object/public/produtos/imagens/1765910829362-foto_large.jpg",
+      "is_promocao": true,
+      "preco_promocao": null,
+      "id_categoria": "eb3be659-811d-4d23-b7be-7973cf08ffb7",
+      "disponivel": true
+    }
+  ],
+  "pedidos": [
+    {
+      "pedido_id": 2,
+      "data_pedido": "2025-12-16T00:00:00.000Z",
+      "status": "PENDENTE",
+      "mercadopago_payment_id": null,
+      "fk_feira": null,
+      "fk_cliente": "02819729231"
+    }
+  ],
+  "favoritos": [],
+  "sacolas": [],
+  "associacoes": [],
+  "categorias": [
+    {
+      "nome": "Legumes",
+      "id_categoria": "eb3be659-811d-4d23-b7be-7973cf08ffb7"
+    }
+  ]
+}
