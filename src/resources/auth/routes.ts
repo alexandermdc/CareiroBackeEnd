@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { login, registrarCliente, registrarVendedor } from "./controllers";
+import { login, loginVendedor, loginCliente, registrarCliente, registrarVendedor } from "./controllers";
 
 const router = Router();
 
@@ -68,9 +68,9 @@ router.post("/login", login);
 
 /**
  * @swagger
- * /auth/login/vendedor:
+ * /auth/login/cliente:
  *   post:
- *     summary: Realiza login do vendedor
+ *     summary: Realiza login específico de cliente
  *     tags: [Autenticação]
  *     requestBody:
  *       required: true
@@ -79,48 +79,52 @@ router.post("/login", login);
  *           schema:
  *             type: object
  *             required:
- *               - id_vendedor
+ *               - email
  *               - senha
  *             properties:
- *               id_vendedor:
+ *               email:
  *                 type: string
- *                 format: uuid
- *                 example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+ *                 example: cliente@email.com
+ *               senha:
+ *                 type: string
+ *                 example: senha123
+ *     responses:
+ *       200:
+ *         description: Login de cliente bem-sucedido
+ *       401:
+ *         description: Credenciais inválidas
+ */
+router.post("/login/cliente", loginCliente);
+
+/**
+ * @swagger
+ * /auth/login/vendedor:
+ *   post:
+ *     summary: Realiza login específico de vendedor
+ *     tags: [Autenticação]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - senha
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: vendedor@email.com
  *               senha:
  *                 type: string
  *                 example: senha123
  *     responses:
  *       200:
  *         description: Login de vendedor bem-sucedido
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 accessToken:
- *                   type: string
- *                 refreshToken:
- *                   type: string
- *                 expiresIn:
- *                   type: string
- *                 vendedor:
- *                   type: object
- *                   properties:
- *                     id_vendedor:
- *                       type: string
- *                     nome:
- *                       type: string
- *                     telefone:
- *                       type: string
- *                     tipo_vendedor:
- *                       type: string
- *                     associacao:
- *                       type: object
- *                       nullable: true
  *       401:
  *         description: Credenciais inválidas
  */
-router.post("/login", login);
+router.post("/login/vendedor", loginVendedor);
 
 /**
  * Rotas de registro

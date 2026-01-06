@@ -11,13 +11,81 @@ import { addRefreshToken } from "./refreshToken";
 export const login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { email, senha } = req.body;
+    const papelDesejado = req.headers['x-user-role'] as string;
 
     if (!email || !senha) {
       res.status(400).json({ error: 'Email e senha são obrigatórios' });
       return;
     }
 
-    // Tentar buscar como cliente
+    console.log(`🔐 Tentativa de login: ${email}`);
+    console.log(`📨 Headers recebidos:`, {
+      'x-user-role': req.headers['x-user-role'],
+      'x-user-type': req.headers['x-user-type'],
+      'authorization': req.headers.authorization ? 'presente' : 'ausente'
+    });
+    console.log(`🎯 Papel desejado: ${papelDesejado || 'CLIENTE (padrão)'}`);
+
+    // Se papel específico foi solicitado, buscar apenas como esse papel
+    if (papelDesejado === 'VENDEDOR') {
+      const vendedor = await prisma.vendedor.findUnique({
+        where: { email },
+        include: {
+          associacao: {
+            select: {
+              id_associacao: true,
+              nome: true
+            }
+          }
+        }
+      });
+
+      if (vendedor) {
+        const senhaCorreta = await bcrypt.compare(senha, vendedor.senha);
+
+        if (!senhaCorreta) {
+          res.status(401).json({ error: 'Credenciais inválidas' });
+          return;
+        }
+
+        const tokenPayload = {
+          id_vendedor: vendedor.id_vendedor,
+          email: vendedor.email,
+          tipo: 'VENDEDOR'
+        };
+
+        const accessToken = gerarToken(tokenPayload);
+        const refreshToken = gerarRefreshToken(tokenPayload);
+        addRefreshToken(refreshToken);
+
+        console.log(`✅ Login realizado: ${vendedor.email} (VENDEDOR)`);
+
+        res.status(200).json({
+          token: accessToken,
+          accessToken,
+          refreshToken,
+          expiresIn: '1h',
+          vendedor: {
+            id_vendedor: vendedor.id_vendedor,
+            nome: vendedor.nome,
+            email: vendedor.email,
+            telefone: vendedor.telefone,
+            endereco_venda: vendedor.endereco_venda,
+            tipo_vendedor: vendedor.tipo_vendedor,
+            tipo_documento: vendedor.tipo_documento,
+            numero_documento: vendedor.numero_documento,
+            associacao: vendedor.associacao,
+            tipo: 'VENDEDOR'
+          }
+        });
+        return;
+      }
+
+      res.status(401).json({ error: 'Vendedor não encontrado ou credenciais inválidas' });
+      return;
+    }
+
+    // Buscar como cliente (padrão ou quando solicitado explicitamente)
     const cliente = await prisma.cliente.findUnique({ 
       where: { email }
     });
@@ -265,8 +333,145 @@ export const registrarVendedor = async (req: Request, res: Response, next: NextF
   }
 };
 
+/**
+ * Login específico para VENDEDOR
+ */
+export const loginVendedor = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { email, senha } = req.body;
+
+    if (!email || !senha) {
+      res.status(400).json({ error: 'Email e senha são obrigatórios' });
+      return;
+    }
+
+    console.log(`🏪 Login VENDEDOR: ${email}`);
+
+    const vendedor = await prisma.vendedor.findUnique({
+      where: { email },
+      include: {
+        associacao: {
+          select: {
+            id_associacao: true,
+            nome: true
+          }
+        }
+      }
+    });
+
+    if (!vendedor) {
+      res.status(401).json({ error: 'Vendedor não encontrado' });
+      return;
+    }
+
+    const senhaCorreta = await bcrypt.compare(senha, vendedor.senha);
+
+    if (!senhaCorreta) {
+      res.status(401).json({ error: 'Credenciais inválidas' });
+      return;
+    }
+
+    const tokenPayload = {
+      id_vendedor: vendedor.id_vendedor,
+      email: vendedor.email,
+      tipo: 'VENDEDOR'
+    };
+
+    const accessToken = gerarToken(tokenPayload);
+    const refreshToken = gerarRefreshToken(tokenPayload);
+    addRefreshToken(refreshToken);
+
+    console.log(`✅ Login realizado: ${vendedor.email} (VENDEDOR)`);
+
+    res.status(200).json({
+      token: accessToken,
+      accessToken,
+      refreshToken,
+      expiresIn: '1h',
+      vendedor: {
+        id_vendedor: vendedor.id_vendedor,
+        nome: vendedor.nome,
+        email: vendedor.email,
+        telefone: vendedor.telefone,
+        endereco_venda: vendedor.endereco_venda,
+        tipo_vendedor: vendedor.tipo_vendedor,
+        tipo_documento: vendedor.tipo_documento,
+        numero_documento: vendedor.numero_documento,
+        associacao: vendedor.associacao,
+        tipo: 'VENDEDOR'
+      }
+    });
+  } catch (error) {
+    console.error('❌ Erro no login de vendedor:', error);
+    next(error);
+  }
+};
+
+/**
+ * Login específico para CLIENTE
+ */
+export const loginCliente = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { email, senha } = req.body;
+
+    if (!email || !senha) {
+      res.status(400).json({ error: 'Email e senha são obrigatórios' });
+      return;
+    }
+
+    console.log(`👤 Login CLIENTE: ${email}`);
+
+    const cliente = await prisma.cliente.findUnique({ 
+      where: { email }
+    });
+
+    if (!cliente) {
+      res.status(401).json({ error: 'Cliente não encontrado' });
+      return;
+    }
+
+    const senhaCorreta = await bcrypt.compare(senha, cliente.senha);
+
+    if (!senhaCorreta) {
+      res.status(401).json({ error: 'Credenciais inválidas' });
+      return;
+    }
+
+    const tokenPayload = {
+      cpf: cliente.cpf,
+      email: cliente.email,
+      tipo: cliente.tipo_usuario
+    };
+
+    const accessToken = gerarToken(tokenPayload);
+    const refreshToken = gerarRefreshToken(tokenPayload);
+    addRefreshToken(refreshToken);
+
+    console.log(`✅ Login realizado: ${cliente.email} (${cliente.tipo_usuario})`);
+
+    res.status(200).json({
+      token: accessToken,
+      accessToken,
+      refreshToken,
+      expiresIn: '1h',
+      cliente: {
+        cpf: cliente.cpf,
+        nome: cliente.nome,
+        email: cliente.email,
+        telefone: cliente.telefone,
+        tipo: cliente.tipo_usuario
+      }
+    });
+  } catch (error) {
+    console.error('❌ Erro no login de cliente:', error);
+    next(error);
+  }
+};
+
 export default {
   login,
+  loginVendedor,
+  loginCliente,
   registrarCliente,
   registrarVendedor
 };

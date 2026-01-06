@@ -75,6 +75,59 @@ export const getProdutosByCategoriaCount = async (req: Request, res: Response) =
   }
 };
 
+export const getProdutosByVendedor = async (req: Request, res: Response) => {
+  const id_vendedor: string = req.params.id_vendedor;
+  
+  try {
+    console.log(`📦 Buscando produtos do vendedor: ${id_vendedor}`);
+    
+    const produtos = await prisma.produto.findMany({
+      where: {
+        fk_vendedor: id_vendedor
+      },
+      include: {
+        categoria: true,
+        vendedor: {
+          select: {
+            id_vendedor: true,
+            nome: true,
+            email: true
+          }
+        }
+      },
+      orderBy: {
+        nome: 'asc'
+      }
+    });
+
+    console.log(`✅ ${produtos.length} produtos encontrados`);
+    
+    // Limpar URLs de imagem inválidas
+    const produtosLimpos = produtos.map(produto => {
+      let imagemLimpa = null;
+      
+      if (produto.image) {
+        const isBase64 = produto.image.startsWith('data:image');
+        const isUrlValida = produto.image.startsWith('http') && 
+                           !produto.image.includes('google.com/url') && 
+                           !produto.image.includes('placeholder.com');
+        
+        imagemLimpa = isBase64 || isUrlValida ? produto.image : null;
+      }
+      
+      return {
+        ...produto,
+        image: imagemLimpa
+      };
+    });
+
+    res.json(produtosLimpos);
+  } catch (error) {
+    console.error('❌ Erro ao buscar produtos do vendedor:', error);
+    res.status(500).json({ error: 'Erro ao buscar produtos do vendedor' });
+  }
+};
+
 export const getProdutoById = async (req: Request, res: Response) => {
   const id : string = req.params.id; ;
   try {
@@ -151,16 +204,40 @@ export const createProduto = async (req: Request, res: Response) => {
 
   const imageFile = req.file; 
 
+  console.log('📦 Criando produto:');
+  console.log('  - Dados recebidos:', req.body);
+  console.log('  - Tipos:', {
+    disponivel: typeof disponivel,
+    is_promocao: typeof is_promocao,
+    preco: typeof preco
+  });
+  console.log('  - Arquivo:', imageFile ? {
+    fieldname: imageFile.fieldname,
+    originalname: imageFile.originalname,
+    mimetype: imageFile.mimetype,
+    size: imageFile.size
+  } : '❌ NENHUM ARQUIVO RECEBIDO');
+  console.log('  - Usuário:', req.user);
+
   try {
     // Validar se a imagem foi enviada
     if (!imageFile) {
+      console.log('❌ Erro: Nenhuma imagem foi enviada no campo "image"');
       res.status(400).json({ error: 'Imagem do produto é obrigatória' });
       return;
     }
     
-    const fileName = `${Date.now()}-${imageFile.originalname}`;
+    // Sanitizar nome do arquivo - remover caracteres especiais e acentos
+    const sanitizedFileName = imageFile.originalname
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+      .replace(/[^a-zA-Z0-9.-]/g, '_'); // Substitui caracteres especiais por _
+    
+    const fileName = `${Date.now()}-${sanitizedFileName}`;
     const filePath = `${fileName}`;
     const bucketName = 'produtos/imagens';   
+
+    console.log(`📤 Upload para Supabase: ${filePath}`);
 
     const { error: uploadError } = await supabase.storage
       .from(bucketName)
@@ -170,8 +247,9 @@ export const createProduto = async (req: Request, res: Response) => {
       });
 
     if (uploadError) {
-      console.error('Erro no Supabase Storage:', uploadError);
-      res.status(500).send('Erro ao fazer upload da imagem.');
+      console.error('❌ Erro no Supabase Storage:', uploadError);
+      res.status(500).json({ error: 'Erro ao fazer upload da imagem', details: uploadError.message });
+      return; // IMPORTANTE: return para não continuar
     }
 
     const { data: publicURLData } = supabase.storage
@@ -180,14 +258,26 @@ export const createProduto = async (req: Request, res: Response) => {
 
     const imageUrl = publicURLData.publicUrl;
 
+    console.log(`✅ Imagem salva: ${imageUrl}`);
+
+    // Converter strings de FormData para tipos corretos
+    const parseBoolean = (value: any): boolean => {
+      if (value === undefined || value === null) return false;
+      if (typeof value === 'boolean') return value;
+      if (typeof value === 'string') {
+        return value === 'true' || value === '1';
+      }
+      return Boolean(value);
+    };
+
     const result: produto = await prisma.produto.create({
       data: {
         nome,
         descricao,
-        disponivel,
-        is_promocao,
-        preco,
-        preco_promocao,
+        disponivel: parseBoolean(disponivel),
+        is_promocao: parseBoolean(is_promocao),
+        preco: Number(preco),
+        preco_promocao: preco_promocao ? Number(preco_promocao) : null,
         image: imageUrl, 
         vendedor: {
           connect: { id_vendedor: fk_vendedor }, 
@@ -198,81 +288,168 @@ export const createProduto = async (req: Request, res: Response) => {
       },
     });
 
+    console.log(`✅ Produto criado: ${result.id_produto}`);
     res.status(201).json(result);
   } catch (error) {
-    console.error('Erro ao criar produto:', error);
-    res.status(500).send('Erro ao criar produto');
+    console.error('❌ Erro ao criar produto:', error);
+    res.status(500).json({ error: 'Erro ao criar produto', details: error instanceof Error ? error.message : 'Erro desconhecido' });
   }
 };
 
 export const updateProduto = async (req: Request, res: Response) => {
-
   const id = req.params.id;
+  const imageFile = req.file;
 
   const {
     nome,
     descricao,
-    image,
     disponivel,
     is_promocao,
     preco,
     preco_promocao,
     id_categoria,
-  }: {
-    nome?: string;
-    descricao?: string;
-    image?: string;
-    disponivel: boolean;
-    is_promocao?: boolean;
-    preco?: number;
-    preco_promocao?: number;
-    id_categoria?: string;
   } = req.body;
+
   try {
-    const result: produto | null = await prisma.produto.update({
-      where: {
-        id_produto: id,
-      },
-      data: {
-        nome,
-        descricao,
-        image,
-        disponivel,
-        is_promocao,
-        preco,
-        preco_promocao,
-        id_categoria,
-      },
+    console.log(`📝 Atualizando produto: ${id}`);
+    console.log('  - Dados recebidos:', req.body);
+    console.log('  - Tipos:', {
+      disponivel: typeof disponivel,
+      is_promocao: typeof is_promocao,
+      preco: typeof preco
+    });
+    console.log('  - Nova imagem:', imageFile ? imageFile.originalname : 'não enviada');
+
+    let imageUrl: string | undefined = undefined;
+
+    // Se uma nova imagem foi enviada, fazer upload
+    if (imageFile) {
+      const sanitizedFileName = imageFile.originalname
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9.-]/g, '_');
+      
+      const fileName = `${Date.now()}-${sanitizedFileName}`;
+      const filePath = `${fileName}`;
+      const bucketName = 'produtos/imagens';
+
+      console.log(`📤 Upload nova imagem: ${filePath}`);
+
+      const { error: uploadError } = await supabase.storage
+        .from(bucketName)
+        .upload(filePath, imageFile.buffer, {
+          contentType: imageFile.mimetype,
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error('❌ Erro no upload:', uploadError);
+        res.status(500).json({ error: 'Erro ao fazer upload da nova imagem' });
+        return;
+      }
+
+      const { data: publicURLData } = supabase.storage
+        .from(bucketName)
+        .getPublicUrl(filePath);
+
+      imageUrl = publicURLData.publicUrl;
+      console.log(`✅ Nova imagem salva: ${imageUrl}`);
+    }
+
+    // Preparar dados para atualização
+    // Converter strings de FormData para tipos corretos
+    const parseBoolean = (value: any): boolean => {
+      if (value === undefined || value === null) return false;
+      if (typeof value === 'boolean') return value;
+      if (typeof value === 'string') {
+        return value === 'true' || value === '1';
+      }
+      return Boolean(value);
+    };
+
+    const dataToUpdate: any = {
+      ...(nome && { nome }),
+      ...(descricao && { descricao }),
+      ...(disponivel !== undefined && { disponivel: parseBoolean(disponivel) }),
+      ...(is_promocao !== undefined && { is_promocao: parseBoolean(is_promocao) }),
+      ...(preco && { preco: Number(preco) }),
+      ...(preco_promocao !== undefined && preco_promocao !== null && { preco_promocao: Number(preco_promocao) }),
+      ...(id_categoria && { id_categoria }),
+      ...(imageUrl && { image: imageUrl }),
+    };
+
+    console.log('  - Dados convertidos:', dataToUpdate);
+
+    const result = await prisma.produto.update({
+      where: { id_produto: id },
+      data: dataToUpdate,
+      include: {
+        categoria: true,
+        vendedor: {
+          select: {
+            id_vendedor: true,
+            nome: true,
+            email: true
+          }
+        }
+      }
     });
 
-    if (result) {
-      res.json(result);
-    } else {
-      res.status(404).send('Produto não encontrado');
-    }
+    console.log(`✅ Produto atualizado: ${id}`);
+    res.json(result);
   } catch (error) {
-    console.error('Erro ao atualizar produto:', error);
-    res.status(500).send('Erro ao atualizar produto');
+    console.error('❌ Erro ao atualizar produto:', error);
+    res.status(500).json({ 
+      error: 'Erro ao atualizar produto', 
+      details: error instanceof Error ? error.message : 'Erro desconhecido' 
+    });
   }
 };
 
 export const deleteProduto = async (req: Request, res: Response) => {
-  const id = parseInt(req.params.id, 10);
+  const id = req.params.id;
+  
   try {
-    const result: produto | null = await prisma.produto.delete({
-      where: {
-        id_produto: id.toString(),
-      },
+    console.log(`🗑️ Deletando produto: ${id}`);
+    
+    // Primeiro, buscar o produto para pegar a URL da imagem
+    const produto = await prisma.produto.findUnique({
+      where: { id_produto: id }
     });
 
-    if (result) {
-      res.json(result);
-    } else {
-      res.status(404).send('Produto não encontrado');
+    if (!produto) {
+      res.status(404).json({ error: 'Produto não encontrado' });
+      return;
     }
+
+    // Deletar do banco
+    await prisma.produto.delete({
+      where: { id_produto: id }
+    });
+
+    // Tentar deletar a imagem do Supabase (se existir)
+    if (produto.image && produto.image.includes('supabase')) {
+      try {
+        const fileName = produto.image.split('/').pop();
+        if (fileName) {
+          await supabase.storage
+            .from('produtos/imagens')
+            .remove([fileName]);
+          console.log(`🗑️ Imagem deletada: ${fileName}`);
+        }
+      } catch (imageError) {
+        console.warn('⚠️ Erro ao deletar imagem, mas produto foi deletado:', imageError);
+      }
+    }
+
+    console.log(`✅ Produto deletado: ${id}`);
+    res.json({ message: 'Produto deletado com sucesso', id });
   } catch (error) {
-    console.error('Erro ao deletar produto:', error);
-    res.status(500).send('Erro ao deletar produto');
+    console.error('❌ Erro ao deletar produto:', error);
+    res.status(500).json({ 
+      error: 'Erro ao deletar produto', 
+      details: error instanceof Error ? error.message : 'Erro desconhecido' 
+    });
   }
 };
 
