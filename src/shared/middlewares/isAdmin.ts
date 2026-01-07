@@ -14,6 +14,7 @@ export const isAdmin = (req: Request, res: Response, next: NextFunction): void =
   // IMPORTANTE: Em produção, busque essa lista do banco de dados
   const admins = [
     'admin@agriconect.com',
+    'admin@agriconect.com.br',
     'getulio@agriconect.com',
     'adm@teste.com',
   ];

@@ -36,14 +36,27 @@ export const getFeiraById = async (req: Request, res: Response): Promise<void> =
 
 // Criar nova feira
 export const createFeira = async (req: Request, res: Response): Promise<void> => {
-  const { nome, data_hora, descricao } = req.body;
+  const { nome, data_hora, descricao, image } = req.body;
   const imageFile = req.file;
+
+  console.log('📝 Criando feira:', { 
+    nome, 
+    data_hora, 
+    descricao,
+    tem_file: !!imageFile,
+    tem_base64: image ? `${image.substring(0, 50)}...` : 'não enviada'
+  });
 
   try {
     let imageUrl = null;
 
-    // Se houver imagem, fazer upload para Supabase
-    if (imageFile) {
+    // Prioridade 1: Imagem base64 do body
+    if (image) {
+      imageUrl = image;
+      console.log('✅ Usando imagem base64 do body');
+    }
+    // Prioridade 2: Upload via multipart/form-data
+    else if (imageFile) {
       const fileName = `${Date.now()}-${imageFile.originalname}`;
       const filePath = `${fileName}`;
       const bucketName = 'feiras/imagens';
@@ -66,6 +79,7 @@ export const createFeira = async (req: Request, res: Response): Promise<void> =>
         .getPublicUrl(filePath);
 
       imageUrl = publicURLData.publicUrl;
+      console.log('✅ Upload Supabase concluído:', imageUrl);
     }
 
     const novaFeira = await prisma.feira.create({
@@ -77,6 +91,7 @@ export const createFeira = async (req: Request, res: Response): Promise<void> =>
       },
     });
 
+    console.log('✅ Feira criada:', { id: novaFeira.id_feira, tem_imagem: !!novaFeira.image });
     res.status(201).json(novaFeira);
   } catch (error) {
     console.error('Erro ao criar feira:', error);

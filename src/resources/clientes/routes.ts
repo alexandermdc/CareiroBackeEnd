@@ -4,6 +4,7 @@ import {
   listarClientesPorId,
   criarCliente,
   atualizarCliente,
+  atualizarFotoPerfil,
   deletarCliente,
   adicionarFavorito,
   listarFavoritos,
@@ -203,6 +204,42 @@ router.post('/', validarCPFBody, criarCliente);
  *         description: Cliente não encontrado
  */
 router.put('/:cpf', isAuth, validarCPFParam, atualizarCliente);
+
+/**
+ * @swagger
+ * /clientes/{cpf}/foto-perfil:
+ *   patch:
+ *     summary: Atualiza a foto de perfil do cliente
+ *     tags: [Clientes]
+ *     parameters:
+ *       - in: path
+ *         name: cpf
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: CPF do cliente
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - foto_perfil
+ *             properties:
+ *               foto_perfil:
+ *                 type: string
+ *                 example: 'https://exemplo.com/foto.jpg'
+ *                 description: URL da foto de perfil (pode ser URL externa ou base64)
+ *     responses:
+ *       200:
+ *         description: Foto de perfil atualizada com sucesso
+ *       400:
+ *         description: URL da foto não fornecida
+ *       404:
+ *         description: Cliente não encontrado
+ */
+router.patch('/:cpf/foto-perfil', isAuth, validarCPFParam, atualizarFotoPerfil);
 
 /**
  * @swagger

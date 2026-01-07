@@ -94,6 +94,36 @@ export const atualizarCliente = async (req: Request, res: Response): Promise<voi
   }
 };
 
+export const atualizarFotoPerfil = async (req: Request, res: Response): Promise<void> => {
+  const { cpf } = req.params;
+  const { foto_perfil } = req.body;
+
+  if (!foto_perfil) {
+    res.status(400).json({ error: 'URL da foto de perfil é obrigatória' });
+    return;
+  }
+
+  try {
+    const clienteAtualizado: cliente = await prisma.cliente.update({
+      where: { cpf },
+      data: { foto_perfil },
+    });
+
+    console.log('Foto de perfil atualizada:', clienteAtualizado);
+    res.json({ 
+      message: 'Foto de perfil atualizada com sucesso',
+      foto_perfil: clienteAtualizado.foto_perfil 
+    });
+  } catch (error: any) {
+    if (error.code === 'P2025') {
+      res.status(404).json({ error: 'Cliente não encontrado' });
+    } else {
+      console.error('Erro ao atualizar foto de perfil:', error);
+      res.status(500).json({ error: 'Erro ao atualizar foto de perfil' });
+    }
+  }
+};
+
 export const deletarCliente = async (req: Request, res: Response): Promise<void> => {
   const { cpf } = req.params;
 
@@ -240,6 +270,7 @@ export default {
   listarClientesPorId,
   criarCliente,
   atualizarCliente,
+  atualizarFotoPerfil,
   deletarCliente,
   adicionarFavorito,
   listarFavoritos,
