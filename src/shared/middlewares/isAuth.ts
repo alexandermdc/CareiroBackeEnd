@@ -50,11 +50,19 @@ export const isVendedor = (req: Request, res: Response, next: NextFunction): voi
     return;
   }
 
+  console.log(`🔒 isVendedor - Verificando usuário:`, {
+    email: req.user.email,
+    tipo: req.user.tipo,
+    id_vendedor: req.user.id_vendedor
+  });
+
   if (req.user.tipo !== 'VENDEDOR') {
+    console.log(`❌ Acesso negado - Tipo do usuário: ${req.user.tipo}, esperado: VENDEDOR`);
     res.status(403).json({ error: 'Acesso negado. Apenas vendedores podem acessar esta rota' });
     return;
   }
 
+  console.log(`✅ Acesso permitido para vendedor: ${req.user.email}`);
   next();
 };
 

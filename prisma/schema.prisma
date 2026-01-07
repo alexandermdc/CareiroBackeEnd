@@ -4,8 +4,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model associacao {
@@ -38,10 +39,12 @@ model cliente {
 }
 
 model feira {
-  id_feira Int      @id @default(autoincrement())
-  nome     String
-  endereco String
-  pedido   pedido[]
+  id_feira   Int       @id @default(autoincrement())
+  nome       String
+  data_hora  String?
+  descricao  String?
+  image      String?
+  pedido     pedido[]
 }
 
 model pedido {

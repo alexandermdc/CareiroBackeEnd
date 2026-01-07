@@ -7,7 +7,8 @@ import { getProdutos,
     deleteProduto,
     getProdutosByCategoria,
     getProdutosCount,
-    getProdutosByCategoriaCount } from './controllers';
+    getProdutosByCategoriaCount,
+    getProdutosByVendedor } from './controllers';
 import multer from 'multer';
 import { validate } from '../../shared/middlewares/validateSchema';
 import { createProdutoSchema } from './schemas';
@@ -15,6 +16,26 @@ import { createProdutoSchema } from './schemas';
 
 const router = express.Router();
 const upload = multer({storage: multer.memoryStorage()})
+
+// Middleware de debug para ver o que chega
+const debugMultipart = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.log('🔍 Debug Multipart:');
+  console.log('  - Content-Type:', req.headers['content-type']);
+  console.log('  - Body:', Object.keys(req.body || {}));
+  console.log('  - File antes do upload:', req.file ? 'existe' : 'undefined');
+  next();
+};
+
+const debugAfterUpload = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.log('📤 Após Multer:');
+  console.log('  - File:', req.file ? {
+    fieldname: req.file.fieldname,
+    originalname: req.file.originalname,
+    size: req.file.size
+  } : '❌ UNDEFINED');
+  console.log('  - Body:', req.body);
+  next();
+};
 
 /**
  * @swagger
@@ -69,6 +90,28 @@ const upload = multer({storage: multer.memoryStorage()})
  *                     example: "550e8400-e29b-41d4-a716-446655440111"
  */
 router.get('/', getProdutos);
+
+/**
+ * @swagger
+ * /produto/vendedor/{id_vendedor}:
+ *   get:
+ *     summary: Busca produtos de um vendedor específico
+ *     tags: [Produto]
+ *     parameters:
+ *       - in: path
+ *         name: id_vendedor
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID do vendedor
+ *     responses:
+ *       200:
+ *         description: Lista de produtos do vendedor
+ *       500:
+ *         description: Erro ao buscar produtos
+ */
+router.get('/vendedor/:id_vendedor', isAuth, getProdutosByVendedor);
 
 /**
  * @swagger
@@ -180,9 +223,11 @@ router.get('/count/categoria/:nome_categoria', getProdutosByCategoriaCount)
  *         description: Dados inválidos
  */
 router.post('/cadastro', 
+     debugMultipart,
+     upload.single('image'),  // Multer PRIMEIRO
+     debugAfterUpload,
      isAuth, 
      isVendedor,
-     upload.single('image'),
      validate(createProdutoSchema),
      createProduto);
 
@@ -237,7 +282,12 @@ router.post('/cadastro',
  *       404:
  *         description: Produto não encontrado
  */
-router.put('/:id', isAuth, updateProduto);
+router.put('/:id', 
+  upload.single('image'),
+  isAuth,
+  isVendedor,
+  updateProduto
+);
 
 /**
  * @swagger
@@ -259,6 +309,6 @@ router.put('/:id', isAuth, updateProduto);
  *       404:
  *         description: Produto não encontrado
  */
-router.delete('/:id', isAuth, deleteProduto);
+router.delete('/:id', isAuth, isVendedor, deleteProduto);
 
 export default router;

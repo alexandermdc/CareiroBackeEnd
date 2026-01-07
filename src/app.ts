@@ -21,7 +21,11 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const app = express();
+
+// Middleware para JSON - não processa multipart/form-data
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 const port = process.env.PORT || 3000;
 
 // Configuração do CORS
@@ -43,7 +47,8 @@ app.use(cors({
   },
   credentials: true, // Permite envio de cookies/auth headers
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-user-role', 'x-user-type'],
+  exposedHeaders: ['Content-Type', 'Authorization', 'x-user-role', 'x-user-type']
 }));
 
 console.log('[INFO] CORS configurado para:', allowedOrigins);
