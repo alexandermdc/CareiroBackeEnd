@@ -6,11 +6,6 @@ Clonando o Repositório
 git@github.com:alexandermdc/CareiroBackeEnd.git
 ```
 
-## Git Hub do BackEnd
-```
-https://github.com/alexandermdc/CareiroBackeEnd
-```
-
 ## Execução
 ### Buildando e iniciando os Containers Docker!
 Para construir as imagens Docker e iniciar a aplicação localmente, existem duas opções:
