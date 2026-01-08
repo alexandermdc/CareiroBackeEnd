@@ -13,6 +13,9 @@ model associacao {
   id_associacao String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   nome          String
   descricao     String
+  image          String?
+  endereco      String?
+  data_hora     String?
   vendedor      vendedor[]
 }
 
@@ -32,6 +35,7 @@ model cliente {
   telefone      String        @db.VarChar(11)
   senha         String        @db.VarChar(100)
   tipo_usuario  TipoUsuario   @default(CLIENTE)
+  foto_perfil   String?
   
   favoritos     favorita_um[]
   pedido        pedido[]

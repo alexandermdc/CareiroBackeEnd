@@ -11,6 +11,7 @@ import mercadopagoRoutes from './resources/mercadopago/routes'; // Importando as
 import authRoutes from './resources/auth/routes'; // Importando as rotas de autenticação
 import refreshRoutes from './resources/refresh/routes'; // Importando as rotas de refresh token
 import webhookRoutes from './resources/webhook/routes'; // Importando as rotas de webhook
+import imageProxyRoutes from './resources/image-proxy/routes'; // Importando proxy de imagens
 import { setupSwagger } from './swagger/swagger';
 import { autenticarToken } from './resources/auth/authMiddleware';
 import errorHandler from './shared/middlewares/errorHandler';
@@ -22,9 +23,9 @@ dotenv.config();
 
 const app = express();
 
-// Middleware para JSON - não processa multipart/form-data
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Middleware para JSON - aumentado limite para suportar imagens base64
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 const port = process.env.PORT || 3000;
 
@@ -112,6 +113,8 @@ app.use('/refresh', refreshRoutes); // Configurando as rotas de refresh token
 console.log('[INFO] Rotas de refresh token carregadas');
 app.use('/webhook', webhookRoutes); // Configurando as rotas de webhook
 console.log('[INFO] Rotas de webhook carregadas');
+app.use('/image-proxy', imageProxyRoutes); // Proxy para imagens (resolve CORS)
+console.log('[INFO] Rotas de image proxy carregadas');
 
 // Middleware de tratamento de erros (deve ser o último)
 app.use(errorHandler as any);

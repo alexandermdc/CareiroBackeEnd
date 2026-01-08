@@ -65,9 +65,15 @@ export const getAssociacaoById = async (req: Request, res: Response): Promise<vo
 
 // 👑 ADM: Criar nova associação (sem id_associacao manual)
 export const criarAssociacao = async (req: Request, res: Response): Promise<void> => {
-  const { nome, descricao } = req.body;
+  const { nome, descricao, image, endereco, data_hora } = req.body;
   
-  console.log('👑 ADM criando associação:', { nome, descricao });
+  console.log('👑 ADM criando associação:', { 
+    nome, 
+    descricao, 
+    endereco, 
+    data_hora,
+    image: image ? `${image.substring(0, 50)}...` : 'não enviada'
+  });
 
   // Validação de campos obrigatórios
   if (!nome || !descricao) {
@@ -82,13 +88,17 @@ export const criarAssociacao = async (req: Request, res: Response): Promise<void
     const novaAssociacao = await prisma.associacao.create({
       data: { 
         nome, 
-        descricao
+        descricao,
+        image,
+        endereco,
+        data_hora
       },
     });
 
     console.log('✅ Associação criada:', {
       id: novaAssociacao.id_associacao,
-      nome: novaAssociacao.nome
+      nome: novaAssociacao.nome,
+      tem_imagem: !!novaAssociacao.image
     });
     
     res.status(201).json({
@@ -108,14 +118,17 @@ export const criarAssociacao = async (req: Request, res: Response): Promise<void
 // 👑 ADM: Atualizar associação
 export const atualizarAssociacao = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
-  const { nome, descricao } = req.body;
+  const { nome, descricao, image, endereco, data_hora } = req.body;
   
   try {
     const associacaoAtualizada = await prisma.associacao.update({
       where: { id_associacao: id },
       data: { 
         ...(nome && { nome }),
-        ...(descricao && { descricao })
+        ...(descricao && { descricao }),
+        ...(image !== undefined && { image }),
+        ...(endereco !== undefined && { endereco }),
+        ...(data_hora !== undefined && { data_hora })
       },
       include: {
         vendedor: true
