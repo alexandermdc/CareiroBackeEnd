@@ -199,7 +199,7 @@ export const getProdutosByCategoria = async (req: Request, res: Response) => {
 export const createProduto = async (req: Request, res: Response) => {
   const { 
     nome, preco, descricao, disponivel, preco_promocao, is_promocao, 
-    fk_vendedor, id_categoria 
+    fk_vendedor, id_categoria, unidade_medida
   } = req.body as CreateProdutoInput;
 
   const imageFile = req.file; 
@@ -278,6 +278,7 @@ export const createProduto = async (req: Request, res: Response) => {
         is_promocao: parseBoolean(is_promocao),
         preco: Number(preco),
         preco_promocao: preco_promocao ? Number(preco_promocao) : null,
+        unidade_medida: unidade_medida || 'UNIDADE',
         image: imageUrl, 
         vendedor: {
           connect: { id_vendedor: fk_vendedor }, 
@@ -308,6 +309,7 @@ export const updateProduto = async (req: Request, res: Response) => {
     preco,
     preco_promocao,
     id_categoria,
+    unidade_medida,
   } = req.body;
 
   try {
@@ -375,6 +377,7 @@ export const updateProduto = async (req: Request, res: Response) => {
       ...(preco && { preco: Number(preco) }),
       ...(preco_promocao !== undefined && preco_promocao !== null && { preco_promocao: Number(preco_promocao) }),
       ...(id_categoria && { id_categoria }),
+      ...(unidade_medida && { unidade_medida }),
       ...(imageUrl && { image: imageUrl }),
     };
 
