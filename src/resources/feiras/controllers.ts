@@ -36,13 +36,14 @@ export const getFeiraById = async (req: Request, res: Response): Promise<void> =
 
 // Criar nova feira
 export const createFeira = async (req: Request, res: Response): Promise<void> => {
-  const { nome, data_hora, descricao, image } = req.body;
+  const { nome, data_hora, descricao, localizacao, image } = req.body;
   const imageFile = req.file;
 
   console.log('📝 Criando feira:', { 
     nome, 
     data_hora, 
     descricao,
+    localizacao,
     tem_file: !!imageFile,
     tem_base64: image ? `${image.substring(0, 50)}...` : 'não enviada'
   });
@@ -87,7 +88,8 @@ export const createFeira = async (req: Request, res: Response): Promise<void> =>
         nome,
         image: imageUrl,
         data_hora: data_hora || null,
-        descricao: descricao || null
+        descricao: descricao || null,
+        localizacao: localizacao || null
       },
     });
 
@@ -101,16 +103,18 @@ export const createFeira = async (req: Request, res: Response): Promise<void> =>
 
 // Atualizar feira
 export const updateFeira = async (req: Request, res: Response): Promise<void> => {
-  const { id_feira, nome, image, data_hora, descricao } = req.body;
+  const { id } = req.params;
+  const { nome, image, data_hora, descricao, localizacao } = req.body;
   try {
     const dataToUpdate: any = {};
     if (nome !== undefined) dataToUpdate.nome = nome;
     if (image !== undefined) dataToUpdate.image = image;
     if (data_hora !== undefined) dataToUpdate.data_hora = data_hora;
     if (descricao !== undefined) dataToUpdate.descricao = descricao;
+    if (localizacao !== undefined) dataToUpdate.localizacao = localizacao;
 
     const feiraAtualizada = await prisma.feira.update({
-      where: { id_feira: parseInt(id_feira) },
+      where: { id_feira: parseInt(id) },
       data: dataToUpdate,
     });
 

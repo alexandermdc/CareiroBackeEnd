@@ -43,12 +43,13 @@ model cliente {
 }
 
 model feira {
-  id_feira   Int       @id @default(autoincrement())
-  nome       String
-  data_hora  String?
-  descricao  String?
-  image      String?
-  pedido     pedido[]
+  id_feira    Int       @id @default(autoincrement())
+  nome        String
+  data_hora   String?
+  descricao   String?
+  localizacao String?
+  image       String?
+  pedido      pedido[]
 }
 
 model pedido {
@@ -74,6 +75,7 @@ model produto {
   id_produto       String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   nome             String
   preco            Float
+  unidade_medida   UnidadeMedida @default(UNIDADE)
   fk_vendedor      String        @db.Uuid
   descricao        String
   image            String
@@ -157,4 +159,11 @@ enum TipoUsuario {
   CLIENTE
   VENDEDOR
   ADMIN
+}
+
+enum UnidadeMedida {
+  UNIDADE
+  KG
+  MACO
+  LITRO
 }

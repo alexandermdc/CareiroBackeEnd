@@ -17,6 +17,7 @@ export const createProdutoSchema = z.object({
     descricao: z.string().min(1),
     fk_vendedor: z.uuid(), 
     id_categoria: z.uuid(),
+    unidade_medida: z.enum(['UNIDADE', 'KG', 'MACO', 'LITRO']).optional(),
 
 });
 

@@ -3,6 +3,7 @@ export interface CreateFeiraDTO {
   image?: string;
   data_hora?: string;
   descricao?: string;
+  localizacao?: string;
 }
 
 export interface UpdateFeiraDTO {
@@ -11,6 +12,7 @@ export interface UpdateFeiraDTO {
   image?: string;
   data_hora?: string;
   descricao?: string;
+  localizacao?: string;
 }
 
 export interface FeiraResponse {
@@ -19,4 +21,5 @@ export interface FeiraResponse {
   image: string | null;
   data_hora: string | null;
   descricao: string | null;
+  localizacao: string | null;
 }
