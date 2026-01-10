@@ -99,13 +99,13 @@ model vendedor {
   tipo_documento   tipo_documento
   numero_documento String
   id_vendedor      String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  fk_associacao    String?        @db.Uuid
+  fk_associacao    String         @db.Uuid
   senha            String         @db.VarChar(100)
   tipo_usuario     TipoUsuario    @default(VENDEDOR)
   
   atende_um        atende_um[]
   produto          produto[]
-  associacao       associacao?    @relation(fields: [fk_associacao], references: [id_associacao], onDelete: NoAction, onUpdate: NoAction, map: "fk_associacao")
+  associacao       associacao     @relation(fields: [fk_associacao], references: [id_associacao], onDelete: NoAction, onUpdate: NoAction, map: "fk_associacao")
 }
 
 model item_pedido {

@@ -46,6 +46,11 @@ export const createVendedor = async (req: Request, res: Response) => {
       return;
     }
 
+    if (!fk_associacao) {
+      res.status(400).json({ error: 'Associação é obrigatória' });
+      return;
+    }
+
     const senha_segura = await bcrypt.hash(senha, saltRounds);
 
     const result = await prisma.vendedor.create({
@@ -58,7 +63,7 @@ export const createVendedor = async (req: Request, res: Response) => {
         endereco_venda,
         tipo_documento,
         numero_documento: numero_documento || null,
-        fk_associacao: fk_associacao || null,
+        fk_associacao,
         senha: senha_segura,
         tipo_usuario: 'VENDEDOR'
       },
