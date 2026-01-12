@@ -37,7 +37,7 @@ export const getVendedorById = async (req: Request, res: Response) => {
 
 // Função para criar um novo vendedor
 export const createVendedor = async (req: Request, res: Response) => {
-  const { nome, email, tipo_vendedor, telefone, endereco_venda, tipo_documento, numero_documento, fk_associacao, senha } = req.body;
+  const { nome, email, tipo_vendedor, telefone, endereco_venda, tipo_documento, numero_documento, fk_associacao, senha, image } = req.body;
 
   try {
     // Validar campos obrigatórios
@@ -58,6 +58,7 @@ export const createVendedor = async (req: Request, res: Response) => {
         id_vendedor: crypto.randomUUID(),
         nome,
         email,
+        image: image || null,
         tipo_vendedor,
         telefone,
         endereco_venda,
@@ -79,7 +80,7 @@ export const createVendedor = async (req: Request, res: Response) => {
 // Função para atualizar um vendedor
 export const updateVendedor = async (req: Request, res: Response) => {
   const id = req.params.id;
-  const { nome, email, tipo_vendedor, telefone, endereco_venda, tipo_documento, numero_documento, fk_associacao, senha } = req.body;
+  const { nome, email, tipo_vendedor, telefone, endereco_venda, tipo_documento, numero_documento, fk_associacao, senha, image } = req.body;
 
   try {
     const dataToUpdate: any = {
@@ -89,7 +90,8 @@ export const updateVendedor = async (req: Request, res: Response) => {
       endereco_venda,
       tipo_documento,
       numero_documento,
-      fk_associacao
+      fk_associacao,
+      image
     };
 
     // Adicionar email se fornecido

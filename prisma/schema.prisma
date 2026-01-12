@@ -93,6 +93,7 @@ model produto {
 model vendedor {
   nome             String
   email            String         @unique
+  image            String?
   telefone         String         @db.VarChar(15)
   endereco_venda   String
   tipo_vendedor    tipo_vendedor
