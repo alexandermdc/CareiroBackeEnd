@@ -14,6 +14,7 @@ export const getAssociacoes = async (req: Request, res: Response): Promise<void>
             nome: true,
             telefone: true,
             tipo_vendedor: true,
+            image: true,
           }
         }
       },
@@ -46,6 +47,7 @@ export const getAssociacaoById = async (req: Request, res: Response): Promise<vo
             tipo_vendedor: true,
             tipo_documento: true,
             numero_documento: true,
+            image: true,
           }
         }
       }

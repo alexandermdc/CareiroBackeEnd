@@ -58,6 +58,10 @@ const router = express.Router();
  *                     type: string
  *                     format: uuid
  *                     example: "f1e2d3c4-b5a6-7890-abcd-0987654321fe"
+ *                   image:
+ *                     type: string
+ *                     format: uri
+ *                     example: "/uploads/vendedores/abcd1234.jpg"
  */
 
 router.get('/', getVendedores);
@@ -152,6 +156,10 @@ router.get('/:id', getVendedorById);
  *                 type: string
  *                 format: uuid
  *                 example: "aabbccdd-1122-3344-5566-77889900aabb"
+ *               image:
+ *                 type: string
+ *                 format: uri
+ *                 example: "/uploads/vendedores/abcd1234.jpg"
  *     responses:
  *       201:
  *         description: Vendedor criado com sucesso
@@ -211,6 +219,11 @@ router.post('/cadastro', createVendedor);
  *         description: Dados inválidos
  *       404:
  *         description: Vendedor não encontrado
+
+ *               image:
+ *                 type: string
+ *                 format: uri
+ *                 example: "/uploads/vendedores/abcd1234.jpg"
  */
 router.put('/:id', isAuth, updateVendedor);
 
