@@ -4,9 +4,12 @@ import {
   getPedidoById,
   createPedido,
   updatePedido,
-  deletePedido
+  deletePedido,
+  getPedidosPorStatus,
+  getPedidoPorMercadoPagoId,
+  getPedidosAdmin
 } from './controllers';
-import { isAuth, isCliente, isVendedor, isClienteOrVendedor } from '../../shared/middlewares/isAuth';
+import { isAuth, isCliente, isVendedor, isClienteOrVendedor, isAdmin } from '../../shared/middlewares/isAuth';
 
 const router = express.Router();
 
@@ -53,6 +56,9 @@ const router = express.Router();
  */
 router.get('/', isAuth, getPedidos);
 
+// Lista pedidos por status (ex.: PAGO). Query: ?status=PAGO&limit=50
+router.get('/pagos', isAuth, getPedidosPorStatus);
+
 /**
  * @swagger
  * /pedido/{id}:
@@ -97,6 +103,12 @@ router.get('/', isAuth, getPedidos);
  *         description: Pedido não encontrado
  */
 router.get('/:id', isAuth, getPedidoById);
+
+// Buscar pedido pelo mercadopago_payment_id
+router.get('/por-pagamento/:paymentId', isAuth, getPedidoPorMercadoPagoId);
+
+// Rotas admin: lista pedidos com payer_email e vendedores envolvidos
+router.get('/admin/pedidos', isAuth, isAdmin, getPedidosAdmin);
 
 /**
  * @swagger

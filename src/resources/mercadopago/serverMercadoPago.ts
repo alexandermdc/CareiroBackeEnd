@@ -28,7 +28,8 @@ export async function handleMercadoPagoPayment(paymentData: PaymentResponse): Pr
       where: { pedido_id: pedidoId },
       data: {
         status: paymentData.status === 'approved' ? 'PAGO' : paymentData.status?.toUpperCase() || 'PENDENTE',
-        mercadopago_payment_id: String(paymentData.id)
+        mercadopago_payment_id: String(paymentData.id),
+        payer_email: paymentData.payer?.email ?? undefined
       },
       include: {
         cliente: {

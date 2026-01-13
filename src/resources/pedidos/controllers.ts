@@ -308,3 +308,168 @@ export default {
   updatePedido,
   deletePedido
 };
+
+// GET: Listar pedidos por status (ex.: PAGO) - inclui informações do cliente e itens
+export const getPedidosPorStatus = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const statusQuery = (req.query.status as string) || 'PAGO';
+    const page = req.query.page ? Math.max(1, parseInt(req.query.page as string, 10) || 1) : 1;
+    const limit = req.query.limit ? Math.max(1, parseInt(req.query.limit as string, 10) || 25) : 25;
+    const skip = (page - 1) * limit;
+
+    const where: any = { status: statusQuery };
+
+    const [total, pedidos] = await Promise.all([
+      prisma.pedido.count({ where }),
+      prisma.pedido.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { pedido_id: 'desc' },
+        include: {
+          cliente: true,
+          produtos_no_pedido: {
+            include: {
+              produto: {
+                include: {
+                  vendedor: {
+                    select: {
+                      id_vendedor: true,
+                      nome: true,
+                      telefone: true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      })
+    ]);
+
+    const totalPages = Math.ceil(total / limit) || 1;
+
+    res.json({
+      data: pedidos,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages
+      }
+    });
+  } catch (error) {
+    console.error('Erro ao listar pedidos por status:', error);
+    res.status(500).send('Erro ao listar pedidos por status');
+  }
+};
+
+// GET: Buscar pedido pelo mercadopago_payment_id
+export const getPedidoPorMercadoPagoId = async (req: Request, res: Response): Promise<void> => {
+  const paymentId = req.params.paymentId;
+
+  if (!paymentId) {
+    res.status(400).json({ error: 'Parâmetro paymentId é obrigatório' });
+    return;
+  }
+
+  try {
+    const pedido = await prisma.pedido.findUnique({
+      where: { mercadopago_payment_id: paymentId },
+      include: {
+        cliente: true,
+        produtos_no_pedido: {
+          include: {
+            produto: {
+              include: {
+                vendedor: {
+                  select: {
+                    id_vendedor: true,
+                    nome: true,
+                    telefone: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!pedido) {
+      res.status(404).json({ error: 'Pedido não encontrado para o paymentId informado' });
+      return;
+    }
+
+    res.json(pedido);
+  } catch (error) {
+    console.error('Erro ao buscar pedido por mercadopago id:', error);
+    res.status(500).send('Erro ao buscar pedido por mercadopago id');
+  }
+};
+
+// GET (admin): listar pedidos com payer_email e vendedores envolvidos
+export const getPedidosAdmin = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const statusQuery = (req.query.status as string) || undefined;
+    const payerEmailQuery = (req.query.payer_email as string) || undefined;
+    const page = req.query.page ? Math.max(1, parseInt(req.query.page as string, 10) || 1) : 1;
+    const limit = req.query.limit ? Math.max(1, parseInt(req.query.limit as string, 10) || 25) : 25;
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (statusQuery) where.status = statusQuery;
+    if (payerEmailQuery) where.payer_email = payerEmailQuery;
+
+    const [total, pedidos] = await Promise.all([
+      prisma.pedido.count({ where }),
+      prisma.pedido.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { pedido_id: 'desc' },
+        include: {
+          cliente: true,
+          produtos_no_pedido: {
+            include: {
+              produto: {
+                include: {
+                  vendedor: true
+                }
+              }
+            }
+          }
+        }
+      })
+    ]);
+
+    // Agregar vendedores por pedido
+    const data = pedidos.map((p) => {
+      const vendedoresMap: Record<string, any> = {};
+      (p.produtos_no_pedido || []).forEach((item: any) => {
+        const v = item.produto?.vendedor;
+        if (v && v.id_vendedor) vendedoresMap[v.id_vendedor] = { id_vendedor: v.id_vendedor, nome: v.nome, telefone: v.telefone };
+      });
+
+      const vendedores = Object.values(vendedoresMap);
+
+      return {
+        pedido_id: p.pedido_id,
+        data_pedido: p.data_pedido,
+        status: p.status,
+        mercadopago_payment_id: p.mercadopago_payment_id,
+        payer_email: p.payer_email,
+        fk_cliente: p.fk_cliente,
+        cliente: p.cliente,
+        vendedores,
+        produtos_no_pedido: p.produtos_no_pedido
+      };
+    });
+
+    const totalPages = Math.ceil(total / limit) || 1;
+    res.json({ data, meta: { total, page, limit, totalPages } });
+  } catch (error) {
+    console.error('Erro em getPedidosAdmin:', error);
+    res.status(500).send('Erro ao listar pedidos (admin)');
+  }
+};

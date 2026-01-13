@@ -97,12 +97,6 @@ app.use('/produto', produtoRoutes); // Configurando as rotas de produto
 app.use('/categoria', categoriaRoutes); // Configurando as rotas de categoria
 console.log('[INFO] Rotas de categoria carregadas');
 
-app.use('/associacao', associacaoRoutes); 
-app.use('/atendeum', atendeUmRoutes); 
-app.use('/pedido', pedidoRoutes); 
-app.use('/feira', feiraRoutes);
-app.use('/produto', produtoRoutes);
-console.log('[INFO] Rotas de produto carregadas');
 app.use('/vendedor', vendedorRoutes); 
 app.use('/mercadopago', mercadopagoRoutes); // Configurando as rotas de mercadoPago
 setupSwagger(app); // Configurando o Swagger
