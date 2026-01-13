@@ -57,6 +57,7 @@ model pedido {
   data_pedido            DateTime      @default(dbgenerated("CURRENT_DATE")) @db.Date
   status                 String        @default("PENDENTE")
   mercadopago_payment_id String?       @unique
+  payer_email            String?
   fk_feira               Int?
   fk_cliente             String        @db.VarChar(11)
   atende_um              atende_um[]
