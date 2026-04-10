@@ -59,6 +59,12 @@ router.get('/', isAuth, getPedidos);
 // Lista pedidos por status (ex.: PAGO). Query: ?status=PAGO&limit=50
 router.get('/pagos', isAuth, getPedidosPorStatus);
 
+// Buscar pedido pelo mercadopago_payment_id
+router.get('/por-pagamento/:paymentId', isAuth, getPedidoPorMercadoPagoId);
+
+// Rotas admin: lista pedidos com dados completos para controle
+router.get('/admin/pedidos', isAuth, isAdmin, getPedidosAdmin);
+
 /**
  * @swagger
  * /pedido/{id}:
@@ -103,12 +109,6 @@ router.get('/pagos', isAuth, getPedidosPorStatus);
  *         description: Pedido não encontrado
  */
 router.get('/:id', isAuth, getPedidoById);
-
-// Buscar pedido pelo mercadopago_payment_id
-router.get('/por-pagamento/:paymentId', isAuth, getPedidoPorMercadoPagoId);
-
-// Rotas admin: lista pedidos com payer_email e vendedores envolvidos
-router.get('/admin/pedidos', isAuth, isAdmin, getPedidosAdmin);
 
 /**
  * @swagger
