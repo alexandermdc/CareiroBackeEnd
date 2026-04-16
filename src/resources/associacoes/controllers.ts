@@ -1,12 +1,46 @@
 import { Request, Response } from 'express';
 import prisma from '../../config/dbConfig';
-import { associacao } from '@prisma/client';
+
+const parseBoolean = (value: unknown, fallback?: boolean): boolean | undefined => {
+  if (value === undefined || value === null || value === '') {
+    return fallback;
+  }
+
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (typeof value === 'number') {
+    return value !== 0;
+  }
+
+  const normalized = String(value).trim().toLowerCase();
+
+  if (['true', '1', 'yes', 'sim', 'on'].includes(normalized)) {
+    return true;
+  }
+
+  if (['false', '0', 'no', 'nao', 'não', 'off'].includes(normalized)) {
+    return false;
+  }
+
+  return fallback;
+};
 
 // Listar todas as associações (público)
 export const getAssociacoes = async (req: Request, res: Response): Promise<void> => {
   try {
     console.log("📋 Listando todas as associações");
+    const disponivelRetirada = parseBoolean(req.query.disponivel_retirada);
+
+    const where: any = {};
+
+    if (disponivelRetirada !== undefined) {
+      where.disponivel_retirada = disponivelRetirada;
+    }
+
     const associacoes = await prisma.associacao.findMany({
+      where,
       include: {
         vendedor: {
           select: {
@@ -67,7 +101,7 @@ export const getAssociacaoById = async (req: Request, res: Response): Promise<vo
 
 // 👑 ADM: Criar nova associação (sem id_associacao manual)
 export const criarAssociacao = async (req: Request, res: Response): Promise<void> => {
-  const { nome, descricao, image, endereco, data_hora } = req.body;
+  const { nome, descricao, image, endereco, data_hora, disponivel_retirada } = req.body;
   
   console.log('👑 ADM criando associação:', { 
     nome, 
@@ -93,7 +127,8 @@ export const criarAssociacao = async (req: Request, res: Response): Promise<void
         descricao,
         image,
         endereco,
-        data_hora
+        data_hora,
+        disponivel_retirada: parseBoolean(disponivel_retirada, false)
       },
     });
 
@@ -120,7 +155,9 @@ export const criarAssociacao = async (req: Request, res: Response): Promise<void
 // 👑 ADM: Atualizar associação
 export const atualizarAssociacao = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
-  const { nome, descricao, image, endereco, data_hora } = req.body;
+  const { nome, descricao, image, endereco, data_hora, disponivel_retirada } = req.body;
+
+  const disponivelRetiradaParseada = parseBoolean(disponivel_retirada);
   
   try {
     const associacaoAtualizada = await prisma.associacao.update({
@@ -130,7 +167,8 @@ export const atualizarAssociacao = async (req: Request, res: Response): Promise<
         ...(descricao && { descricao }),
         ...(image !== undefined && { image }),
         ...(endereco !== undefined && { endereco }),
-        ...(data_hora !== undefined && { data_hora })
+        ...(data_hora !== undefined && { data_hora }),
+        ...(disponivelRetiradaParseada !== undefined && { disponivel_retirada: disponivelRetiradaParseada })
       },
       include: {
         vendedor: true

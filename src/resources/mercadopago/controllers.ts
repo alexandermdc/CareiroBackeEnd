@@ -15,6 +15,8 @@ interface ItemCarrinho {
 export const criarPagamento = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     const { pedido_id, itens } = req.body;
     const userEmail = req.user?.email;
+    const backendBaseUrl = (process.env.BACKEND_PUBLIC_URL || `${req.protocol}://${req.get("host")}` || "").replace(/\/$/, "");
+    const notificationUrl = `${backendBaseUrl}/webhook/mercadopago`;
 
     console.log("📦 Recebido no backend:", { pedido_id, itens, userEmail });
 
@@ -117,6 +119,7 @@ export const criarPagamento = async (req: AuthenticatedRequest, res: Response): 
                 email: userEmail 
             },
             items: mercadoPagoItems,
+            notification_url: notificationUrl,
             back_urls: {
                 success: `http://agriconnect.com.br/pagamento/sucesso?pedido_id=${pedido_id || ''}`,
                 failure: `http://agriconnect.com.br/pagamento/falha?pedido_id=${pedido_id || ''}`,

@@ -88,8 +88,6 @@ router.get('/:id', getAssociacaoById);
  *       404:
  *         description: Associação não encontrada
 */
-router.put('/:id', isAuth, atualizarAssociacao);
-
 /**
  * @swagger
  * /associacao/{id}:
@@ -113,7 +111,9 @@ router.put('/:id', isAuth, atualizarAssociacao);
  *       404:
  *         description: Associação não encontrada
 */
-router.delete('/:id', isAuth, deletarAssociacao);
+router.put('/:id', isAuth, isAdmin, atualizarAssociacao);
+router.patch('/:id', isAuth, isAdmin, atualizarAssociacao);
+router.delete('/:id', isAuth, isAdmin, deletarAssociacao);
 
 /**
  * @swagger
@@ -145,8 +145,6 @@ router.delete('/:id', isAuth, deletarAssociacao);
  */
 // 👑 Rotas protegidas - APENAS ADMINISTRADORES
 router.post('/cadastro', isAuth, isAdmin, criarAssociacao);
-router.put('/:id', isAuth, isAdmin, atualizarAssociacao);
-router.delete('/:id', isAuth, isAdmin, deletarAssociacao);
 
 export default router;
 

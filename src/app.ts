@@ -86,6 +86,7 @@ app.use('/clientes', clienteRoutes);
 
 console.log('[INFO] Rotas de cliente carregadas');
 app.use('/associacao', associacaoRoutes); // Configurando as rotas de associacao
+app.use('/associacoes', associacaoRoutes); // Alias plural para compatibilidade com o frontend
 console.log('[INFO] Rotas de atende um carregadas');
 app.use('/atendeum', atendeUmRoutes); // Configurando as rotas de associado
 console.log('[INFO] Rotas de associado carregadas');

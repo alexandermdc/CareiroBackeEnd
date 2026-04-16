@@ -2,6 +2,32 @@ import { Request, Response } from 'express';
 import prisma from '../../config/dbConfig';
 import { pedido } from '@prisma/client';
 
+const parseBoolean = (value: unknown, fallback?: boolean): boolean | undefined => {
+  if (value === undefined || value === null || value === '') {
+    return fallback;
+  }
+
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (typeof value === 'number') {
+    return value !== 0;
+  }
+
+  const normalized = String(value).trim().toLowerCase();
+
+  if (['true', '1', 'yes', 'sim', 'on'].includes(normalized)) {
+    return true;
+  }
+
+  if (['false', '0', 'no', 'nao', 'não', 'off'].includes(normalized)) {
+    return false;
+  }
+
+  return fallback;
+};
+
 // GET: Buscar pedidos do usuário autenticado
 export const getPedidos = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -20,6 +46,7 @@ export const getPedidos = async (req: Request, res: Response): Promise<void> => 
       include: {
         cliente: true,
         feira: true,
+        associacao_retirada: true,
         atende_um: true,
         produtos_no_pedido: {
           include: {
@@ -62,6 +89,7 @@ export const getPedidoById = async (req: Request, res: Response): Promise<void> 
       include: {
         cliente: true,
         feira: true,
+        associacao_retirada: true,
         atende_um: true,
         produtos_no_pedido: {
           include: {
@@ -105,7 +133,7 @@ export const getPedidoById = async (req: Request, res: Response): Promise<void> 
 // POST: Criar novo pedido com produtos
 export const createPedido = async (req: Request, res: Response): Promise<void> => {
   // produtos deve ser um array: [{ produto_id: number, quantidade: number }, ...]
-  const { data_pedido, fk_feira, produtos, cpf_cliente } = req.body;
+  const { data_pedido, fk_feira, produtos, cpf_cliente, fk_associacao_retirada } = req.body;
   
   const user = (req as any).user;
   
@@ -135,8 +163,31 @@ export const createPedido = async (req: Request, res: Response): Promise<void> =
     res.status(400).json({ error: 'A lista de produtos não pode estar vazia' });
     return;
   }
-
   try {
+    let associacaoRetiradaValida: string | null = null;
+
+    if (fk_associacao_retirada) {
+      const associacaoRetirada = await prisma.associacao.findUnique({
+        where: { id_associacao: fk_associacao_retirada },
+        select: {
+          id_associacao: true,
+          disponivel_retirada: true,
+        }
+      });
+
+      if (!associacaoRetirada) {
+        res.status(404).json({ error: 'Associação de retirada não encontrada' });
+        return;
+      }
+
+      if (!associacaoRetirada.disponivel_retirada) {
+        res.status(400).json({ error: 'A associação selecionada não está disponível para retirada' });
+        return;
+      }
+
+      associacaoRetiradaValida = associacaoRetirada.id_associacao;
+    }
+
     // Se o usuário é VENDEDOR, verificar se ele não está tentando comprar seus próprios produtos
     if (user?.tipo === 'VENDEDOR' && user?.id_vendedor) {
       const produtoIds = produtos.map((p: any) => p.produto_id || p.id_produto);
@@ -169,6 +220,7 @@ export const createPedido = async (req: Request, res: Response): Promise<void> =
           data_pedido: data_pedido ? new Date(data_pedido) : new Date(),
           fk_feira,
           fk_cliente,
+          ...(associacaoRetiradaValida && { fk_associacao_retirada: associacaoRetiradaValida }),
         }
       });
 
@@ -203,6 +255,7 @@ export const createPedido = async (req: Request, res: Response): Promise<void> =
           },
           cliente: true,
           feira: true,
+          associacao_retirada: true,
         }
       });
       
@@ -219,7 +272,7 @@ export const createPedido = async (req: Request, res: Response): Promise<void> =
 // PUT: Atualizar pedido (apenas do usuário autenticado)
 export const updatePedido = async (req: Request, res: Response): Promise<void> => {
   const id = parseInt(req.params.id);
-  const { data_pedido, fk_feira } = req.body;
+  const { data_pedido, fk_feira, fk_associacao_retirada } = req.body;
   const userCpf = (req as any).user?.cpf;
   
   if (!userCpf) {
@@ -243,17 +296,39 @@ export const updatePedido = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
+    if (fk_associacao_retirada !== undefined && fk_associacao_retirada !== null && fk_associacao_retirada !== '') {
+      const associacaoRetirada = await prisma.associacao.findUnique({
+        where: { id_associacao: fk_associacao_retirada },
+        select: {
+          id_associacao: true,
+          disponivel_retirada: true,
+        }
+      });
+
+      if (!associacaoRetirada) {
+        res.status(404).json({ error: 'Associação de retirada não encontrada' });
+        return;
+      }
+
+      if (!associacaoRetirada.disponivel_retirada) {
+        res.status(400).json({ error: 'A associação selecionada não está disponível para retirada' });
+        return;
+      }
+    }
+
     const pedidoAtualizado: pedido = await prisma.pedido.update({
       where: { pedido_id: id },
       data: {
         data_pedido: data_pedido ? new Date(data_pedido) : undefined,
         fk_feira: fk_feira || undefined,
+        ...(fk_associacao_retirada !== undefined && { fk_associacao_retirada: fk_associacao_retirada || null }),
         // Não permitir mudança de cliente
         fk_cliente: pedidoExistente.fk_cliente,
       },
       include: {
         cliente: true,
         feira: true,
+        associacao_retirada: true,
       }
     });
 
@@ -328,6 +403,8 @@ export const getPedidosPorStatus = async (req: Request, res: Response): Promise<
         orderBy: { pedido_id: 'desc' },
         include: {
           cliente: true,
+          feira: true,
+          associacao_retirada: true,
           produtos_no_pedido: {
             include: {
               produto: {
@@ -378,6 +455,7 @@ export const getPedidoPorMercadoPagoId = async (req: Request, res: Response): Pr
       where: { mercadopago_payment_id: paymentId },
       include: {
         cliente: true,
+        associacao_retirada: true,
         produtos_no_pedido: {
           include: {
             produto: {
@@ -430,6 +508,8 @@ export const getPedidosAdmin = async (req: Request, res: Response): Promise<void
         orderBy: { pedido_id: 'desc' },
         include: {
           cliente: true,
+          feira: true,
+          associacao_retirada: true,
           produtos_no_pedido: {
             include: {
               produto: {
@@ -453,13 +533,31 @@ export const getPedidosAdmin = async (req: Request, res: Response): Promise<void
 
       const vendedores = Object.values(vendedoresMap);
 
+      const total_itens = (p.produtos_no_pedido || []).reduce((acumulado: number, item: any) => {
+        return acumulado + (item.quantidade || 0);
+      }, 0);
+
+      const valor_total_calculado = (p.produtos_no_pedido || []).reduce((acumulado: number, item: any) => {
+        const preco = item.produto?.preco || 0;
+        const quantidade = item.quantidade || 0;
+        return acumulado + (preco * quantidade);
+      }, 0);
+
+      const pago = String(p.status || '').toUpperCase() === 'PAGO';
+
       return {
         pedido_id: p.pedido_id,
         data_pedido: p.data_pedido,
         status: p.status,
+        pago,
         mercadopago_payment_id: p.mercadopago_payment_id,
         payer_email: p.payer_email,
         fk_cliente: p.fk_cliente,
+        fk_associacao_retirada: p.fk_associacao_retirada,
+        associacao_retirada: p.associacao_retirada,
+        feira: p.feira,
+        total_itens,
+        valor_total_calculado,
         cliente: p.cliente,
         vendedores,
         produtos_no_pedido: p.produtos_no_pedido
