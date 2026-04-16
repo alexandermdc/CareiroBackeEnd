@@ -22,12 +22,24 @@ export const webhookHandler = async (req: Request, res: Response): Promise<void>
 
     console.log('[WEBHOOK] Assinatura válida');
 
-    const { type, data } = req.body;
+    const typeFromBody = typeof req.body?.type === "string" ? req.body.type : undefined;
+    const typeFromQuery = typeof req.query?.type === "string"
+      ? req.query.type
+      : (typeof req.query?.topic === "string" ? req.query.topic : undefined);
 
-    if (type === "payment") {
+    const dataIdFromBody = req.body?.data?.id;
+    const dataIdFromQuery =
+      typeof req.query?.["data.id"] === "string"
+        ? req.query["data.id"]
+        : (typeof req.query?.id === "string" ? req.query.id : undefined);
+
+    const type = typeFromBody || typeFromQuery;
+    const dataId = dataIdFromBody ?? dataIdFromQuery;
+
+    if (type === "payment" && dataId) {
       try {
         const paymentClient = new Payment(mercadopago);
-        const paymentData = await paymentClient.get({ id: Number(data.id) });
+        const paymentData = await paymentClient.get({ id: Number(dataId) });
 
         if (
           paymentData.status === "approved" ||
@@ -36,11 +48,11 @@ export const webhookHandler = async (req: Request, res: Response): Promise<void>
           await handleMercadoPagoPayment(paymentData);
         }
         
-        console.log('[WEBHOOK] Pagamento processado com sucesso:', data.id);
+        console.log('[WEBHOOK] Pagamento processado com sucesso:', dataId);
       } catch (paymentError: any) {
         // Se for um erro de pagamento não encontrado (teste do MP), apenas loga mas retorna 200
         if (paymentError.status === 404 || paymentError.error === 'not_found') {
-          console.log('[WEBHOOK] Pagamento de teste não encontrado (ID:', data.id, ') - ignorando');
+          console.log('[WEBHOOK] Pagamento de teste não encontrado (ID:', dataId, ') - ignorando');
         } else {
           // Outros erros são re-lançados
           throw paymentError;

@@ -8,9 +8,15 @@ import { Request, Response } from "express";
 export function verifyMercadoPagoSignature(req: Request, res: Response): boolean {
   const xSignature = req.headers["x-signature"] as string | undefined;
   const xRequestId = req.headers["x-request-id"] as string | undefined;
+  const secret = process.env.MERCADO_PAGO_WEBHOOK_SECRET as string | undefined;
 
   if (!xSignature || !xRequestId) {
     res.status(400).json({ error: "Missing x-signature or x-request-id header" });
+    return false;
+  }
+
+  if (!secret) {
+    res.status(500).json({ error: "Missing MERCADO_PAGO_WEBHOOK_SECRET" });
     return false;
   }
 
@@ -32,7 +38,12 @@ export function verifyMercadoPagoSignature(req: Request, res: Response): boolean
     return false;
   }
 
-  const dataId = req.query["data.id"] as string | undefined;
+  const dataIdFromQueryFlat = typeof req.query["data.id"] === "string" ? req.query["data.id"] : undefined;
+  const dataIdFromQueryNested = typeof (req.query as any)?.data?.id === "string" ? (req.query as any).data.id : undefined;
+  const dataIdFromBody = typeof (req.body as any)?.data?.id === "string" || typeof (req.body as any)?.data?.id === "number"
+    ? String((req.body as any).data.id)
+    : undefined;
+  const dataId = dataIdFromQueryFlat || dataIdFromQueryNested || dataIdFromBody;
 
   let manifest = "";
   if (dataId) {
@@ -43,12 +54,17 @@ export function verifyMercadoPagoSignature(req: Request, res: Response): boolean
   }
   manifest += `ts:${ts};`;
 
-  const secret = process.env.MERCADO_PAGO_WEBHOOK_SECRET as string;
   const hmac = crypto.createHmac("sha256", secret);
   hmac.update(manifest);
   const generatedHash = hmac.digest("hex");
 
-  if (generatedHash !== v1) {
+  const generatedHashBuffer = Buffer.from(generatedHash, "utf8");
+  const receivedHashBuffer = Buffer.from(v1, "utf8");
+  const isValid =
+    generatedHashBuffer.length === receivedHashBuffer.length &&
+    crypto.timingSafeEqual(generatedHashBuffer, receivedHashBuffer);
+
+  if (!isValid) {
     res.status(401).json({ error: "Invalid signature" });
     return false;
   }
