@@ -492,7 +492,8 @@ export const getPedidosAdmin = async (req: Request, res: Response): Promise<void
     const statusQuery = (req.query.status as string) || undefined;
     const payerEmailQuery = (req.query.payer_email as string) || undefined;
     const page = req.query.page ? Math.max(1, parseInt(req.query.page as string, 10) || 1) : 1;
-    const limit = req.query.limit ? Math.max(1, parseInt(req.query.limit as string, 10) || 25) : 25;
+    const requestedLimit = req.query.limit ? Math.max(1, parseInt(req.query.limit as string, 10) || 25) : 25;
+    const limit = Math.min(requestedLimit, 100);
     const skip = (page - 1) * limit;
 
     const where: any = {};
@@ -507,17 +508,49 @@ export const getPedidosAdmin = async (req: Request, res: Response): Promise<void
         take: limit,
         orderBy: { pedido_id: 'desc' },
         include: {
-          cliente: true,
-          feira: true,
-          associacao_retirada: true,
+          cliente: {
+            select: {
+              cpf: true,
+              nome: true,
+              email: true,
+              telefone: true,
+            },
+          },
+          feira: {
+            select: {
+              id_feira: true,
+              nome: true,
+              data_hora: true,
+            },
+          },
+          associacao_retirada: {
+            select: {
+              id_associacao: true,
+              nome: true,
+              endereco: true,
+              data_hora: true,
+            },
+          },
           produtos_no_pedido: {
-            include: {
+            select: {
+              id_item_pedido: true,
+              quantidade: true,
               produto: {
-                include: {
-                  vendedor: true
-                }
-              }
-            }
+                select: {
+                  id_produto: true,
+                  nome: true,
+                  preco: true,
+                  fk_vendedor: true,
+                  vendedor: {
+                    select: {
+                      id_vendedor: true,
+                      nome: true,
+                      telefone: true,
+                    },
+                  },
+                },
+              },
+            },
           }
         }
       })
