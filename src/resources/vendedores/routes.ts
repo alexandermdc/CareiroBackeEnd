@@ -212,6 +212,10 @@ router.post('/cadastro', createVendedor);
  *               fk_associacao:
  *                 type: string
  *                 format: uuid
+ *               image:
+ *                 type: string
+ *                 format: uri
+ *                 example: "/uploads/vendedores/abcd1234.jpg"
  *     responses:
  *       200:
  *         description: Vendedor atualizado com sucesso
@@ -219,11 +223,6 @@ router.post('/cadastro', createVendedor);
  *         description: Dados inválidos
  *       404:
  *         description: Vendedor não encontrado
-
- *               image:
- *                 type: string
- *                 format: uri
- *                 example: "/uploads/vendedores/abcd1234.jpg"
  */
 router.put('/:id', isAuth, updateVendedor);
 
