@@ -71,7 +71,7 @@ Diretório principal contendo o código-fonte da aplicação.
 - **`generated/`** - Código gerado automaticamente (Prisma Client)
 
 #### `/prisma`
-Configuração e migrações do banco de dados usando Prisma ORM.
+Configuração e migrações do banco de dados usando Prisma ORM...
 
 - **`schema.prisma`** - Schema do banco de dados
 - **`seed.ts`** - Script para popular o banco com dados iniciais
