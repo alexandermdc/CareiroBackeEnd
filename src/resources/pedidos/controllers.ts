@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../../config/dbConfig';
-import { pedido } from '@prisma/client';
+import { Prisma, pedido } from '@prisma/client';
 import { CreatePedidoDTO, UpdatePedidoDTO } from './types';
 
 const parseBoolean = (value: unknown, fallback?: boolean): boolean | undefined => {
@@ -178,7 +178,10 @@ export const getPedidoById = async (req: Request, res: Response): Promise<void> 
 export const createPedido = async (req: Request, res: Response): Promise<void> => {
   // produtos deve ser um array: [{ produto_id: number, quantidade: number }, ...]
   const body = req.body as CreatePedidoDTO;
-  const { data_pedido, fk_feira, produtos, cpf_cliente, fk_associacao_retirada } = body;
+  const { data_pedido, produtos, cpf_cliente, fk_associacao_retirada } = body;
+  const rawFkFeira = (body as any)?.fk_feira;
+  const rawFkFeiraRetirada = (body as any)?.fk_feira_retirada;
+  const fk_feira = parseOptionalInt(body?.fk_feira);
   const fk_feira_retirada = parseOptionalInt(body?.fk_feira_retirada);
   const pedidoRetirada = isRetiradaRequest(body);
   
@@ -210,7 +213,47 @@ export const createPedido = async (req: Request, res: Response): Promise<void> =
     res.status(400).json({ error: 'A lista de produtos não pode estar vazia' });
     return;
   }
+
+  if (fk_feira === undefined && rawFkFeira !== undefined && rawFkFeira !== null && rawFkFeira !== '') {
+    res.status(400).json({ error: 'fk_feira inválido. Informe um número inteiro válido.' });
+    return;
+  }
+
+  if (fk_feira_retirada === undefined && rawFkFeiraRetirada !== undefined && rawFkFeiraRetirada !== null && rawFkFeiraRetirada !== '') {
+    res.status(400).json({ error: 'fk_feira_retirada inválido. Informe um número inteiro válido.' });
+    return;
+  }
+
+  const dataPedidoConvertida = data_pedido ? new Date(data_pedido) : new Date();
+  if (Number.isNaN(dataPedidoConvertida.getTime())) {
+    res.status(400).json({ error: 'data_pedido inválida. Use um formato de data válido.' });
+    return;
+  }
+
   try {
+    const itensDoPedidoData: { produto_id: string; quantidade: number }[] = [];
+
+    for (let index = 0; index < produtos.length; index++) {
+      const produto = produtos[index] as any;
+      const produtoId = produto?.produto_id || produto?.id_produto;
+      const quantidade = Number(produto?.quantidade);
+
+      if (!produtoId || typeof produtoId !== 'string') {
+        res.status(400).json({ error: `produto_id ausente ou inválido no índice ${index}` });
+        return;
+      }
+
+      if (!Number.isInteger(quantidade) || quantidade <= 0) {
+        res.status(400).json({ error: `quantidade inválida no índice ${index}` });
+        return;
+      }
+
+      itensDoPedidoData.push({
+        produto_id: produtoId,
+        quantidade,
+      });
+    }
+
     let feiraRetiradaValida: number | null = null;
     let associacaoRetiradaValida: string | null = null;
 
@@ -267,7 +310,7 @@ export const createPedido = async (req: Request, res: Response): Promise<void> =
 
     // Se o usuário é VENDEDOR, verificar se ele não está tentando comprar seus próprios produtos
     if (user?.tipo === 'VENDEDOR' && user?.id_vendedor) {
-      const produtoIds = produtos.map((p: any) => p.produto_id || p.id_produto);
+      const produtoIds = itensDoPedidoData.map((p) => p.produto_id);
       
       const produtosDoVendedor = await prisma.produto.findMany({
         where: {
@@ -294,7 +337,7 @@ export const createPedido = async (req: Request, res: Response): Promise<void> =
       // 1. Criar o registro principal do pedido
       const novoPedido = await tx.pedido.create({
         data: {
-          data_pedido: data_pedido ? new Date(data_pedido) : new Date(),
+          data_pedido: dataPedidoConvertida,
           fk_feira,
           fk_cliente,
           ...(feiraRetiradaValida && { fk_feira_retirada: feiraRetiradaValida }),
@@ -305,19 +348,17 @@ export const createPedido = async (req: Request, res: Response): Promise<void> =
       console.log('✅ Pedido criado:', novoPedido.pedido_id);
 
       // 2. Preparar os dados dos itens do pedido (tabela 'item_pedido')
-      const itensDoPedidoData = produtos.map((produto: any) => {
-        return {
-          pedido_id: novoPedido.pedido_id,
-          produto_id: produto.produto_id || produto.id_produto, // Aceita ambos
-          quantidade: produto.quantidade,
-        };
-      });
+      const itensDoPedidoParaPersistir = itensDoPedidoData.map((item) => ({
+        pedido_id: novoPedido.pedido_id,
+        produto_id: item.produto_id,
+        quantidade: item.quantidade,
+      }));
 
-      console.log('📦 Criando itens do pedido:', itensDoPedidoData);
+      console.log('📦 Criando itens do pedido:', itensDoPedidoParaPersistir);
 
       // 3. Inserir todos os itens do pedido de uma só vez (item_pedido)
       await tx.item_pedido.createMany({
-        data: itensDoPedidoData,
+        data: itensDoPedidoParaPersistir,
       });
 
       console.log('✅ Itens do pedido criados');
@@ -345,6 +386,35 @@ export const createPedido = async (req: Request, res: Response): Promise<void> =
 
   } catch (error) {
     console.error('Erro ao criar pedido:', error);
+
+    if (error instanceof Prisma.PrismaClientValidationError) {
+      res.status(400).json({ error: 'Dados inválidos para criação do pedido. Verifique os campos enviados.' });
+      return;
+    }
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2003') {
+        res.status(400).json({
+          error: 'Relacionamento inválido. Verifique cliente, feira e produtos informados.',
+          details: error.meta,
+        });
+        return;
+      }
+
+      if (error.code === 'P2002') {
+        res.status(409).json({
+          error: 'Conflito de dados ao criar pedido.',
+          details: error.meta,
+        });
+        return;
+      }
+
+      if (error.code === 'P2025') {
+        res.status(404).json({ error: 'Registro relacionado não encontrado para criação do pedido.' });
+        return;
+      }
+    }
+
     res.status(500).send('Erro ao criar pedido');
   }
 };
