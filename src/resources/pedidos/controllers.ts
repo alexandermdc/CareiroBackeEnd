@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../../config/dbConfig';
 import { pedido } from '@prisma/client';
+import { CreatePedidoDTO, UpdatePedidoDTO } from './types';
 
 const parseBoolean = (value: unknown, fallback?: boolean): boolean | undefined => {
   if (value === undefined || value === null || value === '') {
@@ -28,6 +29,47 @@ const parseBoolean = (value: unknown, fallback?: boolean): boolean | undefined =
   return fallback;
 };
 
+const parseOptionalInt = (value: unknown): number | null | undefined => {
+  if (value === undefined) return undefined;
+  if (value === null || value === '') return null;
+
+  const parsed = Number(value);
+  if (Number.isNaN(parsed)) return undefined;
+
+  return parsed;
+};
+
+const isRetiradaRequest = (payload: any): boolean => {
+  const forma = payload?.forma_entrega ?? payload?.formaEntrega ?? payload?.tipo_entrega ?? payload?.tipoEntrega ?? payload?.entrega;
+
+  if (typeof forma === 'string') {
+    const normalized = forma.trim().toLowerCase();
+    if (normalized.includes('retirada')) {
+      return true;
+    }
+  }
+
+  return Boolean(payload?.fk_feira_retirada || payload?.fk_associacao_retirada);
+};
+
+const serializePedidoRetirada = (pedidoData: any) => {
+  if (!pedidoData) return pedidoData;
+
+  return {
+    ...pedidoData,
+    feira_retirada: pedidoData.feira_retirada
+      ? {
+          id_feira: pedidoData.feira_retirada.id_feira,
+          nome: pedidoData.feira_retirada.nome,
+          localizacao: pedidoData.feira_retirada.localizacao,
+          data_hora: pedidoData.feira_retirada.data_hora,
+        }
+      : null,
+  };
+};
+
+const serializePedidosRetirada = (pedidosData: any[]) => pedidosData.map(serializePedidoRetirada);
+
 // GET: Buscar pedidos do usuário autenticado
 export const getPedidos = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -46,6 +88,7 @@ export const getPedidos = async (req: Request, res: Response): Promise<void> => 
       include: {
         cliente: true,
         feira: true,
+        feira_retirada: true,
         associacao_retirada: true,
         atende_um: true,
         produtos_no_pedido: {
@@ -66,7 +109,7 @@ export const getPedidos = async (req: Request, res: Response): Promise<void> => 
         }
       }
     });
-    res.json(pedidos);
+    res.json(serializePedidosRetirada(pedidos));
   } catch (error) {
     console.error('Erro ao buscar pedidos:', error);
     res.status(500).send('Erro ao buscar pedidos');
@@ -89,6 +132,7 @@ export const getPedidoById = async (req: Request, res: Response): Promise<void> 
       include: {
         cliente: true,
         feira: true,
+        feira_retirada: true,
         associacao_retirada: true,
         atende_um: true,
         produtos_no_pedido: {
@@ -122,7 +166,7 @@ export const getPedidoById = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    res.json(pedido);
+    res.json(serializePedidoRetirada(pedido));
   } catch (error) {
     console.error('Erro ao buscar pedido:', error);
     res.status(500).send('Erro ao buscar pedido');
@@ -133,7 +177,10 @@ export const getPedidoById = async (req: Request, res: Response): Promise<void> 
 // POST: Criar novo pedido com produtos
 export const createPedido = async (req: Request, res: Response): Promise<void> => {
   // produtos deve ser um array: [{ produto_id: number, quantidade: number }, ...]
-  const { data_pedido, fk_feira, produtos, cpf_cliente, fk_associacao_retirada } = req.body;
+  const body = req.body as CreatePedidoDTO;
+  const { data_pedido, fk_feira, produtos, cpf_cliente, fk_associacao_retirada } = body;
+  const fk_feira_retirada = parseOptionalInt(body?.fk_feira_retirada);
+  const pedidoRetirada = isRetiradaRequest(body);
   
   const user = (req as any).user;
   
@@ -164,9 +211,39 @@ export const createPedido = async (req: Request, res: Response): Promise<void> =
     return;
   }
   try {
+    let feiraRetiradaValida: number | null = null;
     let associacaoRetiradaValida: string | null = null;
 
-    if (fk_associacao_retirada) {
+    if (pedidoRetirada && fk_feira_retirada === undefined && !fk_associacao_retirada) {
+      res.status(400).json({
+        error: 'Para pedidos com retirada, informe fk_feira_retirada (ou fk_associacao_retirada temporariamente para clientes legados).'
+      });
+      return;
+    }
+
+    if (fk_feira_retirada !== undefined && fk_feira_retirada !== null) {
+      const feiraRetirada = await prisma.feira.findUnique({
+        where: { id_feira: fk_feira_retirada },
+        select: {
+          id_feira: true,
+          disponivel_retirada: true,
+        }
+      });
+
+      if (!feiraRetirada) {
+        res.status(404).json({ error: 'Feira de retirada não encontrada' });
+        return;
+      }
+
+      if (!feiraRetirada.disponivel_retirada) {
+        res.status(400).json({ error: 'A feira selecionada não está disponível para retirada' });
+        return;
+      }
+
+      feiraRetiradaValida = feiraRetirada.id_feira;
+    }
+
+    if (!feiraRetiradaValida && fk_associacao_retirada) {
       const associacaoRetirada = await prisma.associacao.findUnique({
         where: { id_associacao: fk_associacao_retirada },
         select: {
@@ -220,7 +297,8 @@ export const createPedido = async (req: Request, res: Response): Promise<void> =
           data_pedido: data_pedido ? new Date(data_pedido) : new Date(),
           fk_feira,
           fk_cliente,
-          ...(associacaoRetiradaValida && { fk_associacao_retirada: associacaoRetiradaValida }),
+          ...(feiraRetiradaValida && { fk_feira_retirada: feiraRetiradaValida }),
+          ...(!feiraRetiradaValida && associacaoRetiradaValida && { fk_associacao_retirada: associacaoRetiradaValida }),
         }
       });
 
@@ -255,6 +333,7 @@ export const createPedido = async (req: Request, res: Response): Promise<void> =
           },
           cliente: true,
           feira: true,
+          feira_retirada: true,
           associacao_retirada: true,
         }
       });
@@ -262,7 +341,7 @@ export const createPedido = async (req: Request, res: Response): Promise<void> =
       return pedidoCompleto;
     });
 
-    res.status(201).json(novoPedidoComItens);
+    res.status(201).json(serializePedidoRetirada(novoPedidoComItens));
 
   } catch (error) {
     console.error('Erro ao criar pedido:', error);
@@ -272,7 +351,8 @@ export const createPedido = async (req: Request, res: Response): Promise<void> =
 // PUT: Atualizar pedido (apenas do usuário autenticado)
 export const updatePedido = async (req: Request, res: Response): Promise<void> => {
   const id = parseInt(req.params.id);
-  const { data_pedido, fk_feira, fk_associacao_retirada } = req.body;
+  const { data_pedido, fk_feira, fk_associacao_retirada, fk_feira_retirada: fkFeiraRetiradaBody } = req.body as UpdatePedidoDTO;
+  const fk_feira_retirada = parseOptionalInt(fkFeiraRetiradaBody);
   const userCpf = (req as any).user?.cpf;
   
   if (!userCpf) {
@@ -296,7 +376,27 @@ export const updatePedido = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    if (fk_associacao_retirada !== undefined && fk_associacao_retirada !== null && fk_associacao_retirada !== '') {
+    if (fk_feira_retirada !== undefined && fk_feira_retirada !== null) {
+      const feiraRetirada = await prisma.feira.findUnique({
+        where: { id_feira: fk_feira_retirada },
+        select: {
+          id_feira: true,
+          disponivel_retirada: true,
+        }
+      });
+
+      if (!feiraRetirada) {
+        res.status(404).json({ error: 'Feira de retirada não encontrada' });
+        return;
+      }
+
+      if (!feiraRetirada.disponivel_retirada) {
+        res.status(400).json({ error: 'A feira selecionada não está disponível para retirada' });
+        return;
+      }
+    }
+
+    if ((fk_feira_retirada === undefined || fk_feira_retirada === null) && fk_associacao_retirada !== undefined && fk_associacao_retirada !== null && fk_associacao_retirada !== '') {
       const associacaoRetirada = await prisma.associacao.findUnique({
         where: { id_associacao: fk_associacao_retirada },
         select: {
@@ -321,6 +421,8 @@ export const updatePedido = async (req: Request, res: Response): Promise<void> =
       data: {
         data_pedido: data_pedido ? new Date(data_pedido) : undefined,
         fk_feira: fk_feira || undefined,
+        ...(fk_feira_retirada !== undefined && { fk_feira_retirada: fk_feira_retirada || null }),
+        ...(fk_feira_retirada !== undefined && fk_feira_retirada !== null && { fk_associacao_retirada: null }),
         ...(fk_associacao_retirada !== undefined && { fk_associacao_retirada: fk_associacao_retirada || null }),
         // Não permitir mudança de cliente
         fk_cliente: pedidoExistente.fk_cliente,
@@ -328,11 +430,12 @@ export const updatePedido = async (req: Request, res: Response): Promise<void> =
       include: {
         cliente: true,
         feira: true,
+        feira_retirada: true,
         associacao_retirada: true,
       }
     });
 
-    res.json(pedidoAtualizado);
+    res.json(serializePedidoRetirada(pedidoAtualizado));
   } catch (error) {
     console.error('Erro ao atualizar pedido:', error);
     res.status(500).send('Erro ao atualizar pedido');
@@ -404,6 +507,7 @@ export const getPedidosPorStatus = async (req: Request, res: Response): Promise<
         include: {
           cliente: true,
           feira: true,
+          feira_retirada: true,
           associacao_retirada: true,
           produtos_no_pedido: {
             include: {
@@ -427,7 +531,7 @@ export const getPedidosPorStatus = async (req: Request, res: Response): Promise<
     const totalPages = Math.ceil(total / limit) || 1;
 
     res.json({
-      data: pedidos,
+      data: serializePedidosRetirada(pedidos),
       meta: {
         total,
         page,
@@ -455,6 +559,7 @@ export const getPedidoPorMercadoPagoId = async (req: Request, res: Response): Pr
       where: { mercadopago_payment_id: paymentId },
       include: {
         cliente: true,
+        feira_retirada: true,
         associacao_retirada: true,
         produtos_no_pedido: {
           include: {
@@ -479,7 +584,7 @@ export const getPedidoPorMercadoPagoId = async (req: Request, res: Response): Pr
       return;
     }
 
-    res.json(pedido);
+    res.json(serializePedidoRetirada(pedido));
   } catch (error) {
     console.error('Erro ao buscar pedido por mercadopago id:', error);
     res.status(500).send('Erro ao buscar pedido por mercadopago id');
@@ -520,6 +625,15 @@ export const getPedidosAdmin = async (req: Request, res: Response): Promise<void
             select: {
               id_feira: true,
               nome: true,
+              localizacao: true,
+              data_hora: true,
+            },
+          },
+          feira_retirada: {
+            select: {
+              id_feira: true,
+              nome: true,
+              localizacao: true,
               data_hora: true,
             },
           },
@@ -586,7 +700,16 @@ export const getPedidosAdmin = async (req: Request, res: Response): Promise<void
         mercadopago_payment_id: p.mercadopago_payment_id,
         payer_email: p.payer_email,
         fk_cliente: p.fk_cliente,
+        fk_feira_retirada: p.fk_feira_retirada,
         fk_associacao_retirada: p.fk_associacao_retirada,
+        feira_retirada: p.feira_retirada
+          ? {
+              id_feira: p.feira_retirada.id_feira,
+              nome: p.feira_retirada.nome,
+              localizacao: p.feira_retirada.localizacao,
+              data_hora: p.feira_retirada.data_hora,
+            }
+          : null,
         associacao_retirada: p.associacao_retirada,
         feira: p.feira,
         total_itens,

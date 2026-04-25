@@ -114,8 +114,11 @@ console.log('[INFO] Rotas de image proxy carregadas');
 // Middleware de tratamento de erros (deve ser o último)
 app.use(errorHandler as any);
 
-// Iniciando o servido
+export default app;
 
-app.listen(port, () => {
-  console.log(`Server rodando em ${port}`);
-});
+// Iniciando o servidor apenas quando executado diretamente
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`Server rodando em ${port}`);
+  });
+}

@@ -51,6 +51,22 @@ const router = express.Router();
  *                   fk_cliente:
  *                     type: string
  *                     example: 'cliente@email.com'
+ *                   fk_feira_retirada:
+ *                     type: integer
+ *                     nullable: true
+ *                     example: 5
+ *                   feira_retirada:
+ *                     type: object
+ *                     nullable: true
+ *                     properties:
+ *                       id_feira:
+ *                         type: integer
+ *                       nome:
+ *                         type: string
+ *                       localizacao:
+ *                         type: string
+ *                       data_hora:
+ *                         type: string
  *       401:
  *         description: Token não fornecido ou inválido
  */
@@ -101,6 +117,22 @@ router.get('/admin/pedidos', isAuth, isAdmin, getPedidosAdmin);
  *                 fk_cliente:
  *                   type: string
  *                   example: 'cliente@email.com'
+ *                 fk_feira_retirada:
+ *                   type: integer
+ *                   nullable: true
+ *                   example: 5
+ *                 feira_retirada:
+ *                   type: object
+ *                   nullable: true
+ *                   properties:
+ *                     id_feira:
+ *                       type: integer
+ *                     nome:
+ *                       type: string
+ *                     localizacao:
+ *                       type: string
+ *                     data_hora:
+ *                       type: string
  *       401:
  *         description: Token não fornecido ou inválido
  *       403:
@@ -123,9 +155,7 @@ router.get('/:id', isAuth, getPedidoById);
  *           schema:
  *             type: object
  *             required:
- *               - data_pedido
- *               - fk_feira
- *               - fk_cliente
+ *               - produtos
  *             properties:
  *               data_pedido:
  *                 type: string
@@ -137,6 +167,29 @@ router.get('/:id', isAuth, getPedidoById);
  *               fk_cliente:
  *                 type: string
  *                 example: 'cliente@email.com'
+ *               forma_entrega:
+ *                 type: string
+ *                 description: Se enviado como RETIRADA, exige ponto de retirada
+ *                 example: 'RETIRADA'
+ *               fk_feira_retirada:
+ *                 type: integer
+ *                 nullable: true
+ *                 description: Campo novo priorizado para retirada
+ *                 example: 5
+ *               fk_associacao_retirada:
+ *                 type: string
+ *                 nullable: true
+ *                 description: Campo legado aceito temporariamente
+ *                 example: '2f63ba48-b882-4653-a4e1-e3f6d286eb5e'
+ *               produtos:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     produto_id:
+ *                       type: string
+ *                     quantidade:
+ *                       type: integer
  *     responses:
  *       201:
  *         description: Pedido criado com sucesso
@@ -175,6 +228,12 @@ router.post('/cadastro', isAuth, isClienteOrVendedor, createPedido);
  *               fk_cliente:
  *                 type: string
  *                 example: 'novo@email.com'
+ *               fk_feira_retirada:
+ *                 type: integer
+ *                 nullable: true
+ *               fk_associacao_retirada:
+ *                 type: string
+ *                 nullable: true
  *     responses:
  *       200:
  *         description: Pedido atualizado com sucesso

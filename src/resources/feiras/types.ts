@@ -1,18 +1,19 @@
 export interface CreateFeiraDTO {
   nome: string;
-  image?: string;
-  data_hora?: string;
-  descricao?: string;
-  localizacao?: string;
+  data_hora?: string | null;
+  descricao?: string | null;
+  localizacao?: string | null;
+  image?: string | null;
+  disponivel_retirada?: boolean | string | number;
 }
 
 export interface UpdateFeiraDTO {
-  id_feira: number;
   nome?: string;
-  image?: string;
-  data_hora?: string;
-  descricao?: string;
-  localizacao?: string;
+  data_hora?: string | null;
+  descricao?: string | null;
+  localizacao?: string | null;
+  image?: string | null;
+  disponivel_retirada?: boolean | string | number;
 }
 
 export interface FeiraResponse {

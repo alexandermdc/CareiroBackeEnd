@@ -7,6 +7,7 @@ import {
     deleteFeira 
 } from './controllers';
 import isAuth from '../../shared/middlewares/isAuth';
+import { isAdmin } from '../../shared/middlewares/isAuth';
 import multer from 'multer';
 
 const router = express.Router();
@@ -24,10 +25,17 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 /**
  * @swagger
- * /feiras:
+ * /feira:
  *   get:
- *     summary: Lista todos as feiras
+ *     summary: Lista todas as feiras (com filtro opcional de retirada)
  *     tags: [Feiras]
+ *     parameters:
+ *       - in: query
+ *         name: disponivel_retirada
+ *         required: false
+ *         schema:
+ *           type: boolean
+ *         description: Quando true, retorna feiras disponíveis para retirada
  *     responses:
  *       200:
  *         description: Lista de feiras
@@ -47,13 +55,16 @@ const upload = multer({ storage: multer.memoryStorage() });
  *                   endereco:
  *                     type: string
  *                     example: 'Rua Laranjeiras'
+ *                   disponivel_retirada:
+ *                     type: boolean
+ *                     example: true
  */
 router.get('/', getFeiras);
 
 
 /**
  * @swagger
- * /feiras/{id}:
+ * /feira/{id}:
  *   get:
  *     summary: Busca uma feira pelo Id
  *     tags: [Feiras]
@@ -89,7 +100,7 @@ router.get('/:id', getFeiraById);
 
 /**
  * @swagger
- * /feiras:
+ * /feira:
  *   post:
  *     summary: Cria uma nova Feira
  *     tags: [Feiras]
@@ -124,7 +135,7 @@ router.post('/', isAuth, upload.single('image'), createFeira);
 
 /**
  * @swagger
- * /feiras/{id}:
+ * /feira/{id}:
  *   put:
  *     summary: Atualiza uma feira pelo ID
  *     tags: [Feiras]
@@ -150,6 +161,9 @@ router.post('/', isAuth, upload.single('image'), createFeira);
  *               endereco:
  *                 type: string
  *                 example: 'Novo Endereço'
+ *               disponivel_retirada:
+ *                 type: boolean
+ *                 example: true
  *     responses:
  *       200:
  *         description: Feira atualizada com sucesso
@@ -158,12 +172,13 @@ router.post('/', isAuth, upload.single('image'), createFeira);
  *       404:
  *         description: Feira não encontrada
  */
-router.put('/:id', isAuth, updateFeira);
+router.put('/:id', isAuth, isAdmin, updateFeira);
+router.patch('/:id', isAuth, isAdmin, updateFeira);
 
 
 /**
  * @swagger
- * /feiras/{id}:
+ * /feira/{id}:
  *   delete:
  *     summary: Deleta uma feira pelo ID
  *     tags: [Feiras]
@@ -184,6 +199,6 @@ router.put('/:id', isAuth, updateFeira);
  *       404:
  *         description: Feira não encontrada
  */
-router.delete('/:id', isAuth, deleteFeira);
+router.delete('/:id', isAuth, isAdmin, deleteFeira);
 
 export default router;
