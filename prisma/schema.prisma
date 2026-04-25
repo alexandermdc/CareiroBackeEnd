@@ -51,7 +51,9 @@ model feira {
   descricao   String?
   localizacao String?
   image       String?
+  disponivel_retirada Boolean @default(false)
   pedido      pedido[]
+  pedidos_retirada pedido[] @relation("FeiraRetirada")
 }
 
 model pedido {
@@ -61,13 +63,18 @@ model pedido {
   mercadopago_payment_id String?       @unique
   payer_email            String?
   fk_feira               Int?
+  fk_feira_retirada      Int?
   fk_associacao_retirada String?       @db.Uuid
   fk_cliente             String        @db.VarChar(11)
   atende_um              atende_um[]
   produtos_no_pedido     item_pedido[]
   cliente                cliente       @relation(fields: [fk_cliente], references: [cpf], onDelete: NoAction, onUpdate: NoAction, map: "fk_cliente")
   feira                  feira?        @relation(fields: [fk_feira], references: [id_feira], onDelete: NoAction, onUpdate: NoAction, map: "fk_feira")
+  feira_retirada         feira?        @relation("FeiraRetirada", fields: [fk_feira_retirada], references: [id_feira], onDelete: NoAction, onUpdate: NoAction, map: "fk_feira_retirada")
   associacao_retirada     associacao?   @relation("AssociacaoRetirada", fields: [fk_associacao_retirada], references: [id_associacao], onDelete: NoAction, onUpdate: NoAction, map: "fk_associacao_retirada")
+
+  @@index([fk_feira_retirada], map: "idx_pedido_fk_feira_retirada")
+  @@index([fk_associacao_retirada], map: "idx_pedido_fk_associacao_retirada")
 }
 
 model categoria {

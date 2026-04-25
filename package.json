@@ -4,7 +4,8 @@
     "dev": "nodemon --watch src --ext ts --exec ts-node src/app.ts",
     "build": "npx prisma generate && tsc",
     "start": "node dist/app.js",
-    "swagger-autogen": "ts-node ./src/utils/swagger.ts"
+    "swagger-autogen": "ts-node ./src/utils/swagger.ts",
+    "test:integration:retirada": "node --test tests/integration/retirada-feira.integration.test.js"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"

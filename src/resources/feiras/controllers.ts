@@ -2,11 +2,50 @@ import { Request, Response } from 'express';
 import prisma from '../../config/dbConfig';
 import { feira } from '@prisma/client';
 import { supabase } from '../../config/supabaseConfig';
+import { CreateFeiraDTO, UpdateFeiraDTO } from './types';
+
+const parseBoolean = (value: unknown, fallback?: boolean): boolean | undefined => {
+  if (value === undefined || value === null || value === '') {
+    return fallback;
+  }
+
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (typeof value === 'number') {
+    return value !== 0;
+  }
+
+  const normalized = String(value).trim().toLowerCase();
+
+  if (['true', '1', 'yes', 'sim', 'on'].includes(normalized)) {
+    return true;
+  }
+
+  if (['false', '0', 'no', 'nao', 'não', 'off'].includes(normalized)) {
+    return false;
+  }
+
+  return fallback;
+};
 
 // Buscar todas as feiras
 export const getFeiras = async (req: Request, res: Response): Promise<void> => {
   try {
-    const feiras: feira[] = await prisma.feira.findMany();
+    const disponivelRetirada = parseBoolean(req.query.disponivel_retirada);
+
+    const where: any = {};
+    if (disponivelRetirada !== undefined) {
+      where.disponivel_retirada = disponivelRetirada;
+    }
+
+    const feiras: feira[] = await prisma.feira.findMany({
+      where,
+      orderBy: {
+        id_feira: 'asc'
+      }
+    });
     console.log("Feiras entrando no banco de dados");
     res.json(feiras);
   } catch (error) {
@@ -36,7 +75,7 @@ export const getFeiraById = async (req: Request, res: Response): Promise<void> =
 
 // Criar nova feira
 export const createFeira = async (req: Request, res: Response): Promise<void> => {
-  const { nome, data_hora, descricao, localizacao, image } = req.body;
+  const { nome, data_hora, descricao, localizacao, image, disponivel_retirada } = req.body as CreateFeiraDTO;
   const imageFile = req.file;
 
   console.log('📝 Criando feira:', { 
@@ -89,7 +128,8 @@ export const createFeira = async (req: Request, res: Response): Promise<void> =>
         image: imageUrl,
         data_hora: data_hora || null,
         descricao: descricao || null,
-        localizacao: localizacao || null
+        localizacao: localizacao || null,
+        disponivel_retirada: parseBoolean(disponivel_retirada, false)
       },
     });
 
@@ -104,14 +144,16 @@ export const createFeira = async (req: Request, res: Response): Promise<void> =>
 // Atualizar feira
 export const updateFeira = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
-  const { nome, image, data_hora, descricao, localizacao } = req.body;
+  const { nome, image, data_hora, descricao, localizacao, disponivel_retirada } = req.body as UpdateFeiraDTO;
   try {
+    const disponivelRetirada = parseBoolean(disponivel_retirada);
     const dataToUpdate: any = {};
     if (nome !== undefined) dataToUpdate.nome = nome;
     if (image !== undefined) dataToUpdate.image = image;
     if (data_hora !== undefined) dataToUpdate.data_hora = data_hora;
     if (descricao !== undefined) dataToUpdate.descricao = descricao;
     if (localizacao !== undefined) dataToUpdate.localizacao = localizacao;
+    if (disponivelRetirada !== undefined) dataToUpdate.disponivel_retirada = disponivelRetirada;
 
     const feiraAtualizada = await prisma.feira.update({
       where: { id_feira: parseInt(id) },
