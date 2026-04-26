@@ -332,8 +332,8 @@ export const createPedido = async (req: Request, res: Response): Promise<void> =
       }
     }
 
-    // Usar uma transação para garantir a integridade dos dados
-    const novoPedidoComItens = await prisma.$transaction(async (tx) => {
+    // Usar uma transação para garantir a integridade das escritas
+    const novoPedidoId = await prisma.$transaction(async (tx) => {
       // 1. Criar o registro principal do pedido
       const novoPedido = await tx.pedido.create({
         data: {
@@ -363,24 +363,29 @@ export const createPedido = async (req: Request, res: Response): Promise<void> =
 
       console.log('✅ Itens do pedido criados');
 
-      // 4. Retornar o pedido completo com seus itens para a resposta
-      const pedidoCompleto = await tx.pedido.findUnique({
-        where: { pedido_id: novoPedido.pedido_id },
-        include: {
-          produtos_no_pedido: {
-            include: {
-              produto: true
-            }
-          },
-          cliente: true,
-          feira: true,
-          feira_retirada: true,
-          associacao_retirada: true,
-        }
-      });
-      
-      return pedidoCompleto;
+      return novoPedido.pedido_id;
     });
+
+    // Buscar o pedido completo fora da transação para evitar timeout de transação interativa
+    const novoPedidoComItens = await prisma.pedido.findUnique({
+      where: { pedido_id: novoPedidoId },
+      include: {
+        produtos_no_pedido: {
+          include: {
+            produto: true
+          }
+        },
+        cliente: true,
+        feira: true,
+        feira_retirada: true,
+        associacao_retirada: true,
+      }
+    });
+
+    if (!novoPedidoComItens) {
+      res.status(404).json({ error: 'Pedido criado, mas não foi possível carregá-lo para resposta.' });
+      return;
+    }
 
     res.status(201).json(serializePedidoRetirada(novoPedidoComItens));
 
