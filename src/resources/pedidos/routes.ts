@@ -7,7 +7,8 @@ import {
   deletePedido,
   getPedidosPorStatus,
   getPedidoPorMercadoPagoId,
-  getPedidosAdmin
+  getPedidosAdmin,
+  getPedidosByVendedor
 } from './controllers';
 import { isAuth, isCliente, isVendedor, isClienteOrVendedor, isAdmin } from '../../shared/middlewares/isAuth';
 
@@ -80,6 +81,9 @@ router.get('/por-pagamento/:paymentId', isAuth, getPedidoPorMercadoPagoId);
 
 // Rotas admin: lista pedidos com dados completos para controle
 router.get('/admin/pedidos', isAuth, isAdmin, getPedidosAdmin);
+
+// Pedidos vendidos por vendedor específico
+router.get('/vendedor/:id_vendedor', isAuth, getPedidosByVendedor);
 
 /**
  * @swagger

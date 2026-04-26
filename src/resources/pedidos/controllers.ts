@@ -173,6 +173,95 @@ export const getPedidoById = async (req: Request, res: Response): Promise<void> 
   }
 };
 
+// GET: Buscar pedidos que contenham produtos de um vendedor específico
+export const getPedidosByVendedor = async (req: Request, res: Response): Promise<void> => {
+  const idVendedor = req.params.id_vendedor;
+  const user = (req as any).user;
+
+  if (!idVendedor) {
+    res.status(400).json({ error: 'Parâmetro id_vendedor é obrigatório' });
+    return;
+  }
+
+  if (!user) {
+    res.status(401).json({ error: 'Usuário não autenticado' });
+    return;
+  }
+
+  // Vendedor só pode consultar os próprios pedidos; admin pode consultar qualquer vendedor
+  if (user.tipo === 'VENDEDOR' && user.id_vendedor !== idVendedor) {
+    res.status(403).json({ error: 'Acesso negado - você só pode consultar seus próprios pedidos vendidos' });
+    return;
+  }
+
+  if (user.tipo !== 'CLIENTE' && user.tipo !== 'VENDEDOR' && user.tipo !== 'ADMIN') {
+    res.status(403).json({ error: 'Acesso negado. Apenas clientes, vendedores ou administradores podem acessar esta rota' });
+    return;
+  }
+
+  const wherePedidos: any = {
+    produtos_no_pedido: {
+      some: {
+        produto: {
+          fk_vendedor: idVendedor,
+        },
+      },
+    },
+  };
+
+  // Cliente vê apenas os próprios pedidos com esse vendedor
+  if (user.tipo === 'CLIENTE') {
+    if (!user.cpf) {
+      res.status(401).json({ error: 'Usuário cliente sem CPF no token' });
+      return;
+    }
+    wherePedidos.fk_cliente = user.cpf;
+  }
+
+  try {
+    const pedidos = await prisma.pedido.findMany({
+      where: wherePedidos,
+      orderBy: {
+        pedido_id: 'desc',
+      },
+      include: {
+        cliente: true,
+        feira: true,
+        feira_retirada: true,
+        associacao_retirada: true,
+        atende_um: true,
+        produtos_no_pedido: {
+          where: {
+            produto: {
+              fk_vendedor: idVendedor,
+            },
+          },
+          include: {
+            produto: {
+              include: {
+                vendedor: {
+                  select: {
+                    id_vendedor: true,
+                    nome: true,
+                    telefone: true,
+                    endereco_venda: true,
+                  },
+                },
+                categoria: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    res.json(serializePedidosRetirada(pedidos));
+  } catch (error) {
+    console.error('Erro ao buscar pedidos por vendedor:', error);
+    res.status(500).send('Erro ao buscar pedidos por vendedor');
+  }
+};
+
 // POST: Criar novo pedido com produtos
 // POST: Criar novo pedido com produtos
 export const createPedido = async (req: Request, res: Response): Promise<void> => {
