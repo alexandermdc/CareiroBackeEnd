@@ -74,6 +74,9 @@ const serializePedidosRetirada = (pedidosData: any[]) => pedidosData.map(seriali
 export const getPedidos = async (req: Request, res: Response): Promise<void> => {
   try {
     const userCpf = (req as any).user?.cpf;
+    const hasLimit = req.query.limit !== undefined;
+    const limit = hasLimit ? Math.min(parseInt(req.query.limit as string) || 50, 100) : 50;
+    const skip = parseInt(req.query.offset as string) || 0;
     
     if (!userCpf) {
       res.status(401).json({ error: 'Usuário não identificado ou CPF não disponível' });
@@ -81,35 +84,55 @@ export const getPedidos = async (req: Request, res: Response): Promise<void> => 
     }
 
     console.log("Buscando pedidos para cliente CPF:", userCpf);
-    const pedidos = await prisma.pedido.findMany({
-      where: {
-        fk_cliente: userCpf
-      },
-      include: {
-        cliente: true,
-        feira: true,
-        feira_retirada: true,
-        associacao_retirada: true,
-        atende_um: true,
-        produtos_no_pedido: {
-          include: {
-            produto: {
-              include: {
-                vendedor: {
-                  select: {
-                    id_vendedor: true,
-                    nome: true,
-                    telefone: true
-                  }
-                },
-                categoria: true
+    const [pedidos, total] = await Promise.all([
+      prisma.pedido.findMany({
+        where: {
+          fk_cliente: userCpf
+        },
+        take: limit,
+        skip: skip,
+        orderBy: {
+          data_pedido: 'desc'
+        },
+        include: {
+          cliente: true,
+          feira: true,
+          feira_retirada: true,
+          associacao_retirada: true,
+          atende_um: true,
+          produtos_no_pedido: {
+            include: {
+              produto: {
+                include: {
+                  vendedor: {
+                    select: {
+                      id_vendedor: true,
+                      nome: true,
+                      telefone: true
+                    }
+                  },
+                  categoria: true
+                }
               }
             }
           }
         }
-      }
-    });
-    res.json(serializePedidosRetirada(pedidos));
+      }),
+      prisma.pedido.count({
+        where: {
+          fk_cliente: userCpf
+        }
+      })
+    ]);
+    
+    console.log(`📊 Pedidos: ${pedidos.length}/${total}`);
+    const serializado = serializePedidosRetirada(pedidos);
+    // Retorna novo formato apenas se ?limit foi passado, caso contrário mantém compatibilidade
+    if (hasLimit) {
+      res.json({ data: serializado, total, limit, skip });
+    } else {
+      res.json(serializado);
+    }
   } catch (error) {
     console.error('Erro ao buscar pedidos:', error);
     res.status(500).send('Erro ao buscar pedidos');
@@ -177,6 +200,9 @@ export const getPedidoById = async (req: Request, res: Response): Promise<void> 
 export const getPedidosByVendedor = async (req: Request, res: Response): Promise<void> => {
   const idVendedor = req.params.id_vendedor;
   const user = (req as any).user;
+  const hasLimit = req.query.limit !== undefined;
+  const limit = hasLimit ? Math.min(parseInt(req.query.limit as string) || 50, 100) : 50;
+  const skip = parseInt(req.query.offset as string) || 0;
 
   if (!idVendedor) {
     res.status(400).json({ error: 'Parâmetro id_vendedor é obrigatório' });
@@ -219,43 +245,57 @@ export const getPedidosByVendedor = async (req: Request, res: Response): Promise
   }
 
   try {
-    const pedidos = await prisma.pedido.findMany({
-      where: wherePedidos,
-      orderBy: {
-        pedido_id: 'desc',
-      },
-      include: {
-        cliente: true,
-        feira: true,
-        feira_retirada: true,
-        associacao_retirada: true,
-        atende_um: true,
-        produtos_no_pedido: {
-          where: {
-            produto: {
-              fk_vendedor: idVendedor,
+    const [pedidos, total] = await Promise.all([
+      prisma.pedido.findMany({
+        where: wherePedidos,
+        take: limit,
+        skip: skip,
+        orderBy: {
+          pedido_id: 'desc',
+        },
+        include: {
+          cliente: true,
+          feira: true,
+          feira_retirada: true,
+          associacao_retirada: true,
+          atende_um: true,
+          produtos_no_pedido: {
+            where: {
+              produto: {
+                fk_vendedor: idVendedor,
+              },
             },
-          },
-          include: {
-            produto: {
-              include: {
-                vendedor: {
-                  select: {
-                    id_vendedor: true,
-                    nome: true,
-                    telefone: true,
-                    endereco_venda: true,
+            include: {
+              produto: {
+                include: {
+                  vendedor: {
+                    select: {
+                      id_vendedor: true,
+                      nome: true,
+                      telefone: true,
+                      endereco_venda: true,
+                    },
                   },
+                  categoria: true,
                 },
-                categoria: true,
               },
             },
           },
         },
-      },
-    });
+      }),
+      prisma.pedido.count({
+        where: wherePedidos
+      })
+    ]);
 
-    res.json(serializePedidosRetirada(pedidos));
+    console.log(`📊 Pedidos por vendedor: ${pedidos.length}/${total}`);
+    const serializado = serializePedidosRetirada(pedidos);
+    // Retorna novo formato apenas se ?limit foi passado, caso contrário mantém compatibilidade
+    if (hasLimit) {
+      res.json({ data: serializado, total, limit, skip });
+    } else {
+      res.json(serializado);
+    }
   } catch (error) {
     console.error('Erro ao buscar pedidos por vendedor:', error);
     res.status(500).send('Erro ao buscar pedidos por vendedor');

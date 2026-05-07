@@ -4,12 +4,36 @@ import { vendedor } from '@prisma/client';
 
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
-// Função para obter todos os vendedores
+// Função para obter todos os vendedores com paginação para evitar memory leak
 export const getVendedores = async (req: Request, res: Response) => {
   try {
-    const result: vendedor[] = await prisma.vendedor.findMany();
-    console.log("aqui no vendedores");
-    res.json(result);
+    const hasLimit = req.query.limit !== undefined;
+    const limit = hasLimit ? Math.min(parseInt(req.query.limit as string) || 50, 100) : 50;
+    const skip = parseInt(req.query.offset as string) || 0;
+    
+    const [result, total] = await Promise.all([
+      prisma.vendedor.findMany({
+        take: limit,
+        skip: skip,
+        select: {
+          id_vendedor: true,
+          nome: true,
+          email: true,
+          telefone: true,
+          tipo_vendedor: true,
+          tipo_usuario: true
+        }
+      }),
+      prisma.vendedor.count()
+    ]);
+    
+    console.log(`📊 Vendedores: ${result.length}/${total}`);
+    // Retorna novo formato apenas se ?limit foi passado, caso contrário mantém compatibilidade
+    if (hasLimit) {
+      res.json({ data: result, total, limit, skip });
+    } else {
+      res.json(result);
+    }
   } catch (error) {
     console.error('Erro ao buscar vendedores:', error);
     res.status(500).send('Erro ao buscar vendedores');
