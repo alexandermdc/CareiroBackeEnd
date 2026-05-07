@@ -13,8 +13,13 @@ export const getProdutos = async (req: Request, res: Response) => {
 
   try {
     // Buscar com paginação para evitar memory leak
+    const includeInativos = req.query.show_inativos === 'true' || req.query.show_inativos === '1';
+
+    const produtosWhere: any = includeInativos ? {} : { disponivel: true };
+
     const [produtos, total] = await Promise.all([
       prisma.produto.findMany({
+        where: produtosWhere,
         take: limit,
         skip: skip,
         select: {
@@ -28,7 +33,7 @@ export const getProdutos = async (req: Request, res: Response) => {
           fk_vendedor: true
         }
       }),
-      prisma.produto.count()
+      prisma.produto.count({ where: produtosWhere })
     ]);
     
     console.log(`📦 Produtos: ${produtos.length}/${total}`);
@@ -66,7 +71,9 @@ export const getProdutos = async (req: Request, res: Response) => {
 
 export const getProdutosCount = async (req: Request, res: Response) => {
   try{
-    const produtosCount = await prisma.produto.count()
+    const includeInativos = req.query.show_inativos === 'true' || req.query.show_inativos === '1';
+    const where = includeInativos ? {} : { disponivel: true };
+    const produtosCount = await prisma.produto.count({ where });
     res.json({total: produtosCount})
   } catch (error) {
     console.error('Erro ao buscar total de produtos', error);
@@ -77,16 +84,18 @@ export const getProdutosCount = async (req: Request, res: Response) => {
 export const getProdutosByCategoriaCount = async (req: Request, res: Response) => {
   const nome_categoria : string = req.params.nome_categoria;
   try{
-    const produtosByCategoriaCount = await prisma.produto.count({
-      where: {
-        categoria: {
-          nome: {
-            equals: nome_categoria,
-            mode: 'insensitive'
-          }
-        },
-      },
-    })
+    const includeInativos = req.query.show_inativos === 'true' || req.query.show_inativos === '1';
+    const whereClause: any = {
+      categoria: {
+        nome: {
+          equals: nome_categoria,
+          mode: 'insensitive'
+        }
+      }
+    };
+    if (!includeInativos) whereClause.disponivel = true;
+
+    const produtosByCategoriaCount = await prisma.produto.count({ where: whereClause });
     res.json({total: produtosByCategoriaCount})
   } catch (error) {
     console.error('Erro ao buscar total de produtos', error);
@@ -104,11 +113,13 @@ export const getProdutosByVendedor = async (req: Request, res: Response) => {
     const limit = hasLimit ? Math.min(parseInt(req.query.limit as string) || 50, 100) : 50;
     const skip = parseInt(req.query.offset as string) || 0;
     
+    const includeInativos = req.query.show_inativos === 'true' || req.query.show_inativos === '1';
+    const whereClause: any = { fk_vendedor: id_vendedor };
+    if (!includeInativos) whereClause.disponivel = true;
+
     const [produtos, total] = await Promise.all([
       prisma.produto.findMany({
-        where: {
-          fk_vendedor: id_vendedor
-        },
+        where: whereClause,
         take: limit,
         skip: skip,
         include: {
@@ -125,11 +136,7 @@ export const getProdutosByVendedor = async (req: Request, res: Response) => {
           nome: 'asc'
         }
       }),
-      prisma.produto.count({
-        where: {
-          fk_vendedor: id_vendedor
-        }
-      })
+      prisma.produto.count({ where: whereClause })
     ]);
 
     console.log(`✅ ${produtos.length} produtos encontrados`);
@@ -214,15 +221,19 @@ export const getProdutosByCategoria = async (req: Request, res: Response) => {
   const skipValue = isNaN(skip) || skip < 0 ? 0 : skip;
 
   try {
+    const includeInativos = req.query.show_inativos === 'true' || req.query.show_inativos === '1';
+    const whereClause: any = {
+      categoria: {
+        nome: {
+          equals: nome_categoria,
+          mode: 'insensitive'
+        }
+      }
+    };
+    if (!includeInativos) whereClause.disponivel = true;
+
     const result: produto[] = await prisma.produto.findMany({
-      where: {
-        categoria: {
-          nome: {
-            equals: nome_categoria,
-            mode: 'insensitive'
-          }
-        },
-      },
+      where: whereClause,
       take: takeValue,
       skip: skipValue,
     });
