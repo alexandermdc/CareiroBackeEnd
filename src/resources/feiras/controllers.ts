@@ -40,14 +40,29 @@ export const getFeiras = async (req: Request, res: Response): Promise<void> => {
       where.disponivel_retirada = disponivelRetirada;
     }
 
-    const feiras: feira[] = await prisma.feira.findMany({
-      where,
-      orderBy: {
-        id_feira: 'asc'
-      }
-    });
-    console.log("Feiras entrando no banco de dados");
-    res.json(feiras);
+    const hasLimit = req.query.limit !== undefined;
+    const limit = hasLimit ? Math.min(parseInt(req.query.limit as string) || 50, 100) : 50;
+    const skip = parseInt(req.query.offset as string) || 0;
+    
+    const [feiras, total] = await Promise.all([
+      prisma.feira.findMany({
+        where,
+        take: limit,
+        skip: skip,
+        orderBy: {
+          id_feira: 'asc'
+        }
+      }),
+      prisma.feira.count({ where })
+    ]);
+    console.log(`📍 ${feiras.length}/${total} feiras encontradas`);
+    
+    // Retorna novo formato apenas se ?limit foi passado, caso contrário mantém compatibilidade
+    if (hasLimit) {
+      res.json({ data: feiras, total, limit, skip });
+    } else {
+      res.json(feiras);
+    }
   } catch (error) {
     console.error('Erro ao buscar feiras:', error);
     res.status(500).send('Erro ao buscar feiras');

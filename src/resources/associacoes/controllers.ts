@@ -39,26 +39,41 @@ export const getAssociacoes = async (req: Request, res: Response): Promise<void>
       where.disponivel_retirada = disponivelRetirada;
     }
 
-    const associacoes = await prisma.associacao.findMany({
-      where,
-      include: {
-        vendedor: {
-          select: {
-            id_vendedor: true,
-            nome: true,
-            telefone: true,
-            tipo_vendedor: true,
-            image: true,
-          }
-        }
-      },
-      orderBy: {
-        nome: 'asc',
-      },
-    });
+    const hasLimit = req.query.limit !== undefined;
+    const limit = hasLimit ? Math.min(parseInt(req.query.limit as string) || 50, 100) : 50;
+    const skip = parseInt(req.query.offset as string) || 0;
     
-    console.log(`✅ ${associacoes.length} associações encontradas`);
-    res.json(associacoes);
+    const [associacoes, total] = await Promise.all([
+      prisma.associacao.findMany({
+        where,
+        take: limit,
+        skip: skip,
+        include: {
+          vendedor: {
+            select: {
+              id_vendedor: true,
+              nome: true,
+              telefone: true,
+              tipo_vendedor: true,
+              image: true,
+            }
+          }
+        },
+        orderBy: {
+          nome: 'asc',
+        },
+      }),
+      prisma.associacao.count({ where })
+    ]);
+    
+    console.log(`✅ ${associacoes.length}/${total} associações encontradas`);
+    
+    // Retorna novo formato apenas se ?limit foi passado, caso contrário mantém compatibilidade
+    if (hasLimit) {
+      res.json({ data: associacoes, total, limit, skip });
+    } else {
+      res.json(associacoes);
+    }
   } catch (error) {
     console.error('❌ Erro ao buscar associações:', error);
     res.status(500).json({ error: 'Erro ao buscar associações' });
