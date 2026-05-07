@@ -5,14 +5,29 @@ import { categoria } from '@prisma/client';
 // Listar todas as categorias
 export const getCategorias = async (req: Request, res: Response) => {
   try {
-    const categorias: categoria[] = await prisma.categoria.findMany({
-      orderBy: {
-        nome: 'asc',
-      },
-    });
+    const hasLimit = req.query.limit !== undefined;
+    const limit = hasLimit ? Math.min(parseInt(req.query.limit as string) || 50, 100) : 50;
+    const skip = parseInt(req.query.offset as string) || 0;
     
-    console.log(`📋 ${categorias.length} categorias encontradas`);
-    res.json(categorias);
+    const [categorias, total] = await Promise.all([
+      prisma.categoria.findMany({
+        take: limit,
+        skip: skip,
+        orderBy: {
+          nome: 'asc',
+        },
+      }),
+      prisma.categoria.count()
+    ]);
+    
+    console.log(`📋 ${categorias.length}/${total} categorias encontradas`);
+    
+    // Retorna novo formato apenas se ?limit foi passado, caso contrário mantém compatibilidade
+    if (hasLimit) {
+      res.json({ data: categorias, total, limit, skip });
+    } else {
+      res.json(categorias);
+    }
   } catch (error) {
     console.error('❌ Erro ao buscar categorias:', error);
     res.status(500).json({ error: 'Erro ao buscar categorias' });

@@ -100,24 +100,37 @@ export const getProdutosByVendedor = async (req: Request, res: Response) => {
   try {
     console.log(`📦 Buscando produtos do vendedor: ${id_vendedor}`);
     
-    const produtos = await prisma.produto.findMany({
-      where: {
-        fk_vendedor: id_vendedor
-      },
-      include: {
-        categoria: true,
-        vendedor: {
-          select: {
-            id_vendedor: true,
-            nome: true,
-            email: true
+    const hasLimit = req.query.limit !== undefined;
+    const limit = hasLimit ? Math.min(parseInt(req.query.limit as string) || 50, 100) : 50;
+    const skip = parseInt(req.query.offset as string) || 0;
+    
+    const [produtos, total] = await Promise.all([
+      prisma.produto.findMany({
+        where: {
+          fk_vendedor: id_vendedor
+        },
+        take: limit,
+        skip: skip,
+        include: {
+          categoria: true,
+          vendedor: {
+            select: {
+              id_vendedor: true,
+              nome: true,
+              email: true
+            }
           }
+        },
+        orderBy: {
+          nome: 'asc'
         }
-      },
-      orderBy: {
-        nome: 'asc'
-      }
-    });
+      }),
+      prisma.produto.count({
+        where: {
+          fk_vendedor: id_vendedor
+        }
+      })
+    ]);
 
     console.log(`✅ ${produtos.length} produtos encontrados`);
     
@@ -140,7 +153,12 @@ export const getProdutosByVendedor = async (req: Request, res: Response) => {
       };
     });
 
-    res.json(produtosLimpos);
+    // Retorna novo formato apenas se ?limit foi passado, caso contrário mantém compatibilidade
+    if (hasLimit) {
+      res.json({ data: produtosLimpos, total, limit, skip });
+    } else {
+      res.json(produtosLimpos);
+    }
   } catch (error) {
     console.error('❌ Erro ao buscar produtos do vendedor:', error);
     res.status(500).json({ error: 'Erro ao buscar produtos do vendedor' });
