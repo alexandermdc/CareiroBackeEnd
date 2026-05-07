@@ -7,17 +7,31 @@ import { where } from 'sequelize';
 
 
 export const getProdutos = async (req: Request, res: Response) => {
-
-  const limit = parseInt(req.query.limit as string);
-  const skip = parseInt(req.query.offset as string)
-
-  const takeValue = isNaN(limit) || limit <= 0 ? 10 : limit; 
-  const skipValue = isNaN(skip) || skip < 0 ? 0 : skip;
+  const hasLimit = req.query.limit !== undefined;
+  const limit = hasLimit ? Math.min(parseInt(req.query.limit as string) || 50, 100) : 50;
+  const skip = parseInt(req.query.offset as string) || 0;
 
   try {
-    // Utilizando o Prisma com a tipagem explícita
-    const produtos: produto[] = await prisma.produto.findMany();
-    console.log("aqui no produtos");
+    // Buscar com paginação para evitar memory leak
+    const [produtos, total] = await Promise.all([
+      prisma.produto.findMany({
+        take: limit,
+        skip: skip,
+        select: {
+          id_produto: true,
+          nome: true,
+          preco: true,
+          preco_promocao: true,
+          is_promocao: true,
+          disponivel: true,
+          image: true,
+          fk_vendedor: true
+        }
+      }),
+      prisma.produto.count()
+    ]);
+    
+    console.log(`📦 Produtos: ${produtos.length}/${total}`);
     
     // Limpar URLs de imagem inválidas (Google redirects, placeholder, etc)
     const produtosLimpos = produtos.map(produto => {
@@ -38,7 +52,12 @@ export const getProdutos = async (req: Request, res: Response) => {
       };
     });
     
-    res.json(produtosLimpos);
+    // Retorna novo formato apenas se ?limit foi passado, caso contrário mantém compatibilidade
+    if (hasLimit) {
+      res.json({ data: produtosLimpos, total, limit, skip });
+    } else {
+      res.json(produtosLimpos);
+    }
   } catch (error) {
     console.error('Erro ao buscar produtos:', error);
     res.status(500).send('Erro ao buscar produtos');
@@ -425,10 +444,36 @@ export const deleteProduto = async (req: Request, res: Response) => {
       return;
     }
 
-    // Deletar do banco
-    await prisma.produto.delete({
-      where: { id_produto: id }
+    // Verificar se existe item_pedido referenciando este produto
+    const itemReferente = await prisma.item_pedido.findFirst({
+      where: { produto_id: id }
     });
+
+    const forceDelete = req.query.force === 'true' || req.query.force === '1';
+
+    if (itemReferente && !forceDelete) {
+      console.warn(`❌ Tentativa de deletar produto referenciado em pedidos: ${id}`);
+      // Soft-delete: marcar como indisponível para não quebrar integridade referencial
+      await prisma.produto.update({
+        where: { id_produto: id },
+        data: { disponivel: false }
+      });
+      res.status(200).json({ message: 'Produto referenciado em pedidos — marcado como indisponível (disponivel=false). Use ?force=true para remover permanentemente e apagar itens de pedido.' });
+      return;
+    }
+
+    // Se for forçado, remover os itens de pedido em transação antes de deletar o produto
+    if (itemReferente && forceDelete) {
+      await prisma.$transaction([
+        prisma.item_pedido.deleteMany({ where: { produto_id: id } }),
+        prisma.produto.delete({ where: { id_produto: id } })
+      ]);
+    } else {
+      // Deletar do banco
+      await prisma.produto.delete({
+        where: { id_produto: id }
+      });
+    }
 
     // Tentar deletar a imagem do Supabase (se existir)
     if (produto.image && produto.image.includes('supabase')) {

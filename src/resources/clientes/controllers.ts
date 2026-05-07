@@ -8,9 +8,32 @@ const saltRounds = 10;
 
 export const listarClientes = async (req: Request, res: Response): Promise<void> => {
   try {
-    console.log("aqui no cliente");
-    const clientes: cliente[] = await prisma.cliente.findMany();
-    res.json(clientes);
+    const hasLimit = req.query.limit !== undefined;
+    const limit = hasLimit ? Math.min(parseInt(req.query.limit as string) || 50, 100) : 50;
+    const skip = parseInt(req.query.offset as string) || 0;
+    
+    const [clientes, total] = await Promise.all([
+      prisma.cliente.findMany({
+        take: limit,
+        skip: skip,
+        select: {
+          cpf: true,
+          nome: true,
+          email: true,
+          telefone: true,
+          tipo_usuario: true
+        }
+      }),
+      prisma.cliente.count()
+    ]);
+    
+    console.log(`📊 Clientes: ${clientes.length}/${total}`);
+    // Retorna novo formato apenas se ?limit foi passado, caso contrário mantém compatibilidade
+    if (hasLimit) {
+      res.json({ data: clientes, total, limit, skip });
+    } else {
+      res.json(clientes);
+    }
   } catch (error) {
     console.error('Erro ao buscar clientes:', error);
     res.status(500).send('Erro ao buscar clientes');
